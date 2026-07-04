@@ -99,17 +99,17 @@ export const AssignmentManagement: React.FC = () => {
 
   const facultyOptions = facultyList.map((f: any) => ({
     label: `${f.faculty.name} (${f.faculty.facultyId})`,
-    value: f.faculty._id,
+    value: f.faculty.id,
   }));
 
   const subjectOptions = subjectsList.map((s: any) => ({
     label: `${s.subjectName} (${s.subjectCode})`,
-    value: s._id,
+    value: s.id,
   }));
 
   const columns: Column<any>[] = [
-    { header: 'Faculty Name', accessor: 'facultyId.name', sortable: true, sortKey: 'facultyName' },
-    { header: 'Faculty ID', accessor: 'facultyId.facultyId' },
+    { header: 'Faculty Name', accessor: (row) => row.facultyId?.name, sortable: true, sortKey: 'facultyName' },
+    { header: 'Faculty ID', accessor: (row) => row.facultyId?.facultyId },
     {
       header: 'Subject',
       accessor: (row) => `${row.subjectId?.subjectName} (${row.subjectId?.subjectCode})`,
@@ -123,8 +123,8 @@ export const AssignmentManagement: React.FC = () => {
         <Button
           size="sm"
           variant="danger"
-          onClick={() => setDeleteConfirmId(row._id)}
-          id={`delete-assignment-btn-${row._id}`}
+          onClick={() => setDeleteConfirmId(row.id)}
+          id={`delete-assignment-btn-${row.id}`}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
@@ -229,7 +229,7 @@ export const AssignmentManagement: React.FC = () => {
 
       {/* Delete confirm dialog */}
       <ConfirmDialog
-        open={!!deleteConfirmId}
+        isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => deleteConfirmId && deleteMutation.mutate(deleteConfirmId)}
         title="Delete Assignment"

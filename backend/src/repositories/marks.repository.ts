@@ -159,7 +159,13 @@ export const marksRepository = {
     const rows = await db.all<any>(sql, params);
 
     // Group rows by student to find their overall CGPA and count backlogs
-    const studentStats: Record<string, { cgpa: number; backlogs: number; name: string; hallTicketNumber: string }> = {};
+    const studentStats: Record<string, { 
+      cgpa: number; 
+      backlogs: number; 
+      name: string; 
+      hallTicketNumber: string;
+      failedSubjects: { subjectCode: string; subjectName: string }[];
+    }> = {};
 
     rows.forEach((r) => {
       const ht = r.hallTicketNumber;
@@ -169,10 +175,15 @@ export const marksRepository = {
           backlogs: 0,
           name: r.studentName,
           hallTicketNumber: ht,
+          failedSubjects: [],
         };
       }
       if (r.result === 'Fail') {
         studentStats[ht].backlogs++;
+        studentStats[ht].failedSubjects.push({
+          subjectCode: r.subjectCode,
+          subjectName: r.subjectName,
+        });
       }
       // Pick highest cgpa found in marks rows
       if (r.cgpa > studentStats[ht].cgpa) {
@@ -252,12 +263,22 @@ export const marksRepository = {
         backlogs: s.backlogs,
       }));
 
+    const backlogStudents = students
+      .filter((s) => s.backlogs > 0)
+      .map((s) => ({
+        hallTicketNumber: s.hallTicketNumber,
+        name: s.name,
+        backlogs: s.backlogs,
+        failedSubjects: s.failedSubjects,
+      }));
+
     return {
       cgpaDistribution,
       backlogAnalysis,
       subjectAnalysis,
       topPerformers,
       atRiskStudents,
+      backlogStudents,
     };
   },
 };

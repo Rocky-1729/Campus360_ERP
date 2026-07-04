@@ -108,7 +108,7 @@ export const CertificateReview: React.FC = () => {
 
       {/* Review Modal Dialog */}
       <Modal
-        open={!!reviewItem}
+        isOpen={!!reviewItem}
         onClose={() => setReviewItem(null)}
         title="Review Student Certificate"
         size="md"

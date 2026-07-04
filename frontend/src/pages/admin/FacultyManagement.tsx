@@ -201,7 +201,7 @@ export const FacultyManagement: React.FC = () => {
 
       {/* Add / Edit Faculty Modal */}
       <Modal
-        open={modalOpen}
+        isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingFaculty ? 'Edit Faculty Member' : 'Register New Faculty'}
         size="md"
@@ -287,7 +287,7 @@ export const FacultyManagement: React.FC = () => {
 
       {/* Soft delete toggle account confirm dialog */}
       <ConfirmDialog
-        open={!!toggleConfirmId}
+        isOpen={!!toggleConfirmId}
         onClose={() => setToggleConfirmId(null)}
         onConfirm={() => toggleConfirmId && toggleMutation.mutate(toggleConfirmId)}
         title="Toggle Account Access"

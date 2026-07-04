@@ -52,8 +52,8 @@ export const getDashboard = async (
 };
 
 /**
- * Get students assigned to this faculty.
- */
+  * Get students assigned to this faculty.
+  */
 export const getStudents = async (
   req: AuthRequest,
   res: Response,
@@ -61,31 +61,18 @@ export const getStudents = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const faculty = await getFacultyByUserId(req.user.id);
-
-    // Get assignments to find sections
-    const assignments = await facultyRepository.getAssignments({ facultyId: faculty.id });
-    const sections = [...new Set(assignments.map((a) => a.section))];
-
-    if (sections.length === 0) {
-      res.status(200).json(ApiResponse.success([], 'No assigned sections found.'));
-      return;
-    }
-
-    // Fetch students in these sections
+    // Fetch all active students in the department
     const students = await db.all<any>(
-      `SELECT * FROM students WHERE section IN (${sections.map(() => '?').join(',')}) AND isActive = 1 ORDER BY hallTicketNumber ASC`,
-      sections
+      `SELECT * FROM students WHERE isActive = 1 ORDER BY hallTicketNumber ASC`
     );
-
-    res.status(200).json(ApiResponse.success(students, 'Assigned students fetched.'));
+    res.status(200).json(ApiResponse.success(students, 'All active students fetched.'));
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * Search student by Hall Ticket (with section checks).
+ * Search student by Hall Ticket (with section checks bypassed).
  */
 export const searchStudent = async (
   req: AuthRequest,
@@ -95,16 +82,10 @@ export const searchStudent = async (
   try {
     if (!req.user) throw ApiError.unauthorized();
     const { hallTicket } = req.params;
-    const faculty = await getFacultyByUserId(req.user.id);
 
     const student = await studentRepository.findByHallTicket(hallTicket);
     if (!student) {
       throw ApiError.notFound('Student not found.');
-    }
-
-    const isAssigned = await checkStudentAssignment(faculty.id!, student.section || '');
-    if (!isAssigned && req.user.role !== 'admin') {
-      throw ApiError.forbidden('You are not authorized to access this student.');
     }
 
     res.status(200).json(ApiResponse.success(student, 'Student found.'));
@@ -114,7 +95,7 @@ export const searchStudent = async (
 };
 
 /**
- * Get Student Profile (with section checks).
+ * Get Student Profile (with section checks bypassed).
  */
 export const getStudentProfile = async (
   req: AuthRequest,
@@ -124,16 +105,10 @@ export const getStudentProfile = async (
   try {
     if (!req.user) throw ApiError.unauthorized();
     const { hallTicket } = req.params;
-    const faculty = await getFacultyByUserId(req.user.id);
 
     const student = await studentRepository.findByHallTicket(hallTicket);
     if (!student) {
       throw ApiError.notFound('Student not found.');
-    }
-
-    const isAssigned = await checkStudentAssignment(faculty.id!, student.section || '');
-    if (!isAssigned && req.user.role !== 'admin') {
-      throw ApiError.forbidden('You are not authorized to access this student.');
     }
 
     const profile = await studentService.getStudentByHallTicket(hallTicket);
@@ -287,21 +262,10 @@ export const getPendingCertificates = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const faculty = await getFacultyByUserId(req.user.id);
-
-    // Get sections
-    const assignments = await facultyRepository.getAssignments({ facultyId: faculty.id });
-    const sections = [...new Set(assignments.map((a) => a.section))];
-
-    if (sections.length === 0) {
-      res.status(200).json(ApiResponse.success([], 'No assigned sections found.'));
-      return;
-    }
-
-    // Find students in these sections
+    
+    // Find all active students
     const students = await db.all<{ hallTicketNumber: string }>(
-      `SELECT hallTicketNumber FROM students WHERE section IN (${sections.map(() => '?').join(',')}) AND isActive = 1`,
-      sections
+      'SELECT hallTicketNumber FROM students WHERE isActive = 1'
     );
     const hallTickets = students.map((s) => s.hallTicketNumber);
 
@@ -364,21 +328,10 @@ export const getPendingAchievements = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const faculty = await getFacultyByUserId(req.user.id);
 
-    // Get sections
-    const assignments = await facultyRepository.getAssignments({ facultyId: faculty.id });
-    const sections = [...new Set(assignments.map((a) => a.section))];
-
-    if (sections.length === 0) {
-      res.status(200).json(ApiResponse.success([], 'No assigned sections.'));
-      return;
-    }
-
-    // Find students in these sections
+    // Find all active students
     const students = await db.all<{ hallTicketNumber: string }>(
-      `SELECT hallTicketNumber FROM students WHERE section IN (${sections.map(() => '?').join(',')}) AND isActive = 1`,
-      sections
+      'SELECT hallTicketNumber FROM students WHERE isActive = 1'
     );
     const hallTickets = students.map((s) => s.hallTicketNumber);
 

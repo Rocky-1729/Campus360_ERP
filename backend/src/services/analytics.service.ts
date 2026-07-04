@@ -40,6 +40,7 @@ interface FacultyAnalyticsResponse {
   backlogAnalysis: Record<string, number>;
   topPerformers: Array<{ hallTicketNumber: string; name: string; cgpa: number }>;
   atRiskStudents: Array<{ hallTicketNumber: string; name: string; cgpa: number; attendancePercentage: number }>;
+  backlogStudents?: Array<{ hallTicketNumber: string; name: string; backlogs: number; failedSubjects: Array<{ subjectCode: string; subjectName: string }> }>;
 }
 
 /**
@@ -145,30 +146,18 @@ export const getFacultyAnalytics = async (
 
     logger.info(`Computing analytics for faculty ID: ${facultyId}...`);
 
-    // Fetch assignments
+    // Fetch assignments to show subject mappings count
     const assignments = await facultyRepository.getAssignments({ facultyId: Number(facultyId) });
 
-    // Scoped section list
-    const sections = [...new Set(assignments.map((a) => a.section))];
-    let sectionFilter = sections;
-    if (filters.section) {
-      sectionFilter = [filters.section];
-    }
-
+    // Fetch all active students in the department
     const students = await db.all<any>(
-      `SELECT hallTicketNumber, name FROM students WHERE section IN (${sections.map(() => '?').join(',')}) AND isActive = 1`,
-      sectionFilter
+      'SELECT hallTicketNumber, name FROM students WHERE isActive = 1'
     );
 
     const hallTickets = students.map((s) => s.hallTicketNumber);
-    const marksStats = await marksRepository.getAnalytics({
-      section: filters.section,
-      semester: filters.semester,
-      subjectCode: filters.subjectCode,
-      academicYear: filters.academicYear,
-    });
+    const marksStats = await marksRepository.getAnalytics({});
 
-    // Attendance distribution for faculty class
+    // Attendance distribution for all class students
     const attendanceDistribution = {
       'Above 90%': 0,
       '80-89%': 0,
@@ -192,7 +181,7 @@ export const getFacultyAnalytics = async (
       else if (totalPct >= 75) attendanceDistribution['75-79%']++;
       else attendanceDistribution['Below 75%']++;
 
-      // Check if student is at risk in faculty sections
+      // Check if student is at risk
       const studentMarks = marksStats.atRiskStudents.find((am: any) => am.hallTicketNumber === s.hallTicketNumber);
       if (totalPct < 75 || studentMarks) {
         atRiskStudents.push({
@@ -205,6 +194,8 @@ export const getFacultyAnalytics = async (
       }
     }
 
+    const backlogStudents = marksStats.backlogStudents || [];
+
     const result: FacultyAnalyticsResponse = {
       totalAssignedStudents: students.length,
       assignments: assignments.length,
@@ -213,6 +204,7 @@ export const getFacultyAnalytics = async (
       backlogAnalysis: marksStats.backlogAnalysis,
       topPerformers: marksStats.topPerformers,
       atRiskStudents,
+      backlogStudents,
     };
 
     // Save to cache

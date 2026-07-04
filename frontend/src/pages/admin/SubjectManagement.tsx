@@ -208,7 +208,7 @@ export const SubjectManagement: React.FC = () => {
 
       {/* Add / Edit Subject Modal */}
       <Modal
-        open={modalOpen}
+        isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingSubject ? 'Edit Subject' : 'Add New Subject'}
         size="md"
@@ -276,7 +276,7 @@ export const SubjectManagement: React.FC = () => {
 
       {/* Delete confirmation */}
       <ConfirmDialog
-        open={!!deleteConfirmId}
+        isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => deleteConfirmId && deleteMutation.mutate(deleteConfirmId)}
         title="Delete Subject"

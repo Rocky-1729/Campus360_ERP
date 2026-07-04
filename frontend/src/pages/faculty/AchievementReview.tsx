@@ -107,7 +107,7 @@ export const AchievementReview: React.FC = () => {
 
       {/* Review Modal Dialog */}
       <Modal
-        open={!!reviewItem}
+        isOpen={!!reviewItem}
         onClose={() => setReviewItem(null)}
         title="Review Student Achievement"
         size="md"
