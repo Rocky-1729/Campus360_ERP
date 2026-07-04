@@ -1,0 +1,1 @@
+export type { IAchievement } from '../interfaces/db.interface';

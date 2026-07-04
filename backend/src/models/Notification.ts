@@ -1,0 +1,1 @@
+export type { INotification } from '../interfaces/db.interface';

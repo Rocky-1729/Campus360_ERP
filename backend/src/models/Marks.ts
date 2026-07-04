@@ -1,0 +1,1 @@
+export type { IMarks } from '../interfaces/db.interface';

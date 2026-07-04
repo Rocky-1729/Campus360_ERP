@@ -1,0 +1,1 @@
+export type { IFaculty } from '../interfaces/db.interface';

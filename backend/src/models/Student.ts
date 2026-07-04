@@ -1,0 +1,1 @@
+export type { IStudent } from '../interfaces/db.interface';

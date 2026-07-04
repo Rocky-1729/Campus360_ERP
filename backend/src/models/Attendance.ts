@@ -1,0 +1,1 @@
+export type { IAttendance } from '../interfaces/db.interface';

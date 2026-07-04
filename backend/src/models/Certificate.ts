@@ -1,0 +1,1 @@
+export type { ICertificate } from '../interfaces/db.interface';

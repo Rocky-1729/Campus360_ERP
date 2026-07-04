@@ -1,0 +1,1 @@
+export type { IFacultyAssignment } from '../interfaces/db.interface';
