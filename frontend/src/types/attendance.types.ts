@@ -5,7 +5,7 @@ export interface AttendanceRecord {
   subjectName?: string;
   facultyId: string;
   date: string;
-  status: 'Present' | 'Absent' | 'Late';
+  status: "Present" | "Absent" | "Late";
   semester: string;
   section: string;
 }
@@ -21,7 +21,13 @@ export interface SubjectAttendance {
 }
 
 export interface AttendanceSummary {
-  overall: number;
+  overall: {
+    total: number;
+    present: number;
+    absent: number;
+    late: number;
+    percentage: number;
+  };
   subjectWise: SubjectAttendance[];
 }
 
@@ -29,7 +35,7 @@ export interface MarkAttendanceInput {
   hallTicketNumber: string;
   subjectId: string;
   date: string;
-  status: 'Present' | 'Absent' | 'Late';
+  status: "Present" | "Absent" | "Late";
   semester: string;
   section: string;
 }

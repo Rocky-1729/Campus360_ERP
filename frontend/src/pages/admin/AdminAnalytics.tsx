@@ -1,29 +1,28 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { BarChart3, TrendingUp, AlertCircle, FileDown, GraduationCap, Users } from 'lucide-react';
-import { adminApi } from '../../api/admin.api';
-import { BarChartCard } from '../../components/charts/BarChartCard';
-import { PieChartCard } from '../../components/charts/PieChartCard';
-import { Table } from '../../components/ui/Table';
-import type { Column } from '../../components/ui/Table';;
-import { Select } from '../../components/ui/Select';
-import { LoadingScreen } from '../../components/shared/LoadingScreen';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { adminApi } from "../../api/admin.api";
+import { BarChartCard } from "../../components/charts/BarChartCard";
+import { PieChartCard } from "../../components/charts/PieChartCard";
+import { Select } from "../../components/ui/Select";
+import { LoadingScreen } from "../../components/shared/LoadingScreen";
 
 export const AdminAnalytics: React.FC = () => {
-  const [semesterFilter, setSemesterFilter] = useState<string>('');
-  const [yearFilter, setYearFilter] = useState<string>('2025-26');
+  const [semesterFilter, setSemesterFilter] = useState<string>("");
+  const [yearFilter, setYearFilter] = useState<string>("2025-26");
 
   // Fetch department analytics
   const { data: response, isLoading } = useQuery({
-    queryKey: ['adminAnalytics', semesterFilter, yearFilter],
-    queryFn: () => adminApi.getAnalytics({ semester: semesterFilter, academicYear: yearFilter }),
+    queryKey: ["adminAnalytics", semesterFilter, yearFilter],
+    queryFn: () =>
+      adminApi.getAnalytics({
+        semester: semesterFilter,
+        academicYear: yearFilter,
+      }),
   });
 
   if (isLoading) return <LoadingScreen />;
 
-  const analytics = response?.data || {
+  const analytics: any = response?.data || {
     totalStudents: 0,
     totalFaculty: 0,
     totalSubjects: 0,
@@ -35,42 +34,48 @@ export const AdminAnalytics: React.FC = () => {
     attendanceDistribution: {},
   };
 
-  // Convert CGPA distribution object to Recharts array
-  const cgpaData = Object.keys(analytics.cgpaDistribution).map((key) => ({
+  const cgpaSource = analytics?.cgpaDistribution ?? {};
+  const attendanceSource = analytics?.attendanceDistribution ?? {};
+
+  const cgpaData = Object.keys(cgpaSource).map((key) => ({
     range: key,
-    count: analytics.cgpaDistribution[key],
+    count: Number(cgpaSource[key] ?? 0),
   }));
 
-  // Convert Attendance distribution object to Recharts array
-  const attendanceData = Object.keys(analytics.attendanceDistribution).map((key) => ({
+  const attendanceData = Object.keys(attendanceSource).map((key) => ({
     name: key,
-    value: analytics.attendanceDistribution[key],
+    value: Number(attendanceSource[key] ?? 0),
   }));
 
   const semesterOptions = [
-    { label: 'All Semesters', value: '' },
-    { label: '1-1', value: '1-1' },
-    { label: '1-2', value: '1-2' },
-    { label: '2-1', value: '2-1' },
-    { label: '2-2', value: '2-2' },
-    { label: '3-1', value: '3-1' },
-    { label: '3-2', value: '3-2' },
-    { label: '4-1', value: '4-1' },
-    { label: '4-2', value: '4-2' },
+    { label: "All Semesters", value: "" },
+    { label: "1-1", value: "1-1" },
+    { label: "1-2", value: "1-2" },
+    { label: "2-1", value: "2-1" },
+    { label: "2-2", value: "2-2" },
+    { label: "3-1", value: "3-1" },
+    { label: "3-2", value: "3-2" },
+    { label: "4-1", value: "4-1" },
+    { label: "4-2", value: "4-2" },
   ];
 
   const yearOptions = [
-    { label: '2024-25', value: '2024-25' },
-    { label: '2025-26', value: '2025-26' },
-    { label: '2026-27', value: '2026-27' },
+    { label: "2024-25", value: "2024-25" },
+    { label: "2025-26", value: "2025-26" },
+    { label: "2026-27", value: "2026-27" },
   ];
 
   return (
     <div className="space-y-6 text-left">
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Department Analytics</h2>
-          <p className="text-xs text-slate-400">View department-wide statistics, grade distributions, and performance graphs.</p>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            Department Analytics
+          </h2>
+          <p className="text-xs text-slate-400">
+            View department-wide statistics, grade distributions, and
+            performance graphs.
+          </p>
         </div>
       </div>
 
@@ -99,21 +104,33 @@ export const AdminAnalytics: React.FC = () => {
       {/* Summary Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">Total Registered Students</p>
-          <p className="text-2xl font-bold text-slate-850 dark:text-slate-200 mt-1">{analytics.totalStudents}</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase">
+            Total Registered Students
+          </p>
+          <p className="text-2xl font-bold text-slate-850 dark:text-slate-200 mt-1">
+            {analytics.totalStudents}
+          </p>
         </div>
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">Total Faculty Staff</p>
-          <p className="text-2xl font-bold text-slate-850 dark:text-slate-200 mt-1">{analytics.totalFaculty}</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase">
+            Total Faculty Staff
+          </p>
+          <p className="text-2xl font-bold text-slate-850 dark:text-slate-200 mt-1">
+            {analytics.totalFaculty}
+          </p>
         </div>
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">Approved Certificates</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase">
+            Approved Certificates
+          </p>
           <p className="text-2xl font-bold text-emerald-500 mt-1">
             {analytics.totalCertificates - analytics.pendingCertificates}
           </p>
         </div>
         <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">Approved Achievements</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase">
+            Approved Achievements
+          </p>
           <p className="text-2xl font-bold text-emerald-500 mt-1">
             {analytics.totalAchievements - analytics.pendingAchievements}
           </p>
@@ -133,7 +150,7 @@ export const AdminAnalytics: React.FC = () => {
         <PieChartCard
           title="Attendance Range Distribution"
           data={attendanceData}
-          colors={['#10B981', '#F59E0B', '#EF4444', '#4F46E5']}
+          colors={["#10B981", "#F59E0B", "#EF4444", "#4F46E5"]}
           id="attendance-distribution-chart"
         />
       </div>

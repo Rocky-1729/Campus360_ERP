@@ -35,24 +35,32 @@ export interface SubjectPerformance {
 }
 
 export interface AnalyticsData {
-  summary: {
-    totalStudents: number;
-    avgCgpa: number;
-    avgAttendance: number;
-    passPercentage: number;
-    failPercentage: number;
+  totalStudents?: number;
+  totalFaculty?: number;
+  totalSubjects?: number;
+  totalCertificates?: number;
+  totalAchievements?: number;
+  pendingCertificates?: number;
+  pendingAchievements?: number;
+  notificationsSent?: number;
+  summary?: {
+    totalStudents?: number;
+    avgCgpa?: number;
+    avgAttendance?: number;
+    passPercentage?: number;
+    failPercentage?: number;
   };
-  cgpaDistribution: CgpaDistribution[];
-  attendanceDistribution: AttendanceDistribution[];
-  backlogAnalysis: BacklogAnalysis[];
-  subjectPerformance: SubjectPerformance[];
-  topPerformers: {
+  cgpaDistribution?: Record<string, number> | CgpaDistribution[];
+  attendanceDistribution?: Record<string, number> | AttendanceDistribution[];
+  backlogAnalysis?: BacklogAnalysis[];
+  subjectPerformance?: SubjectPerformance[];
+  topPerformers?: {
     hallTicketNumber: string;
     name: string;
     cgpa: number;
     sgpa: number;
   }[];
-  atRiskStudents: {
+  atRiskStudents?: {
     hallTicketNumber: string;
     name: string;
     cgpa: number;
@@ -63,22 +71,47 @@ export interface AnalyticsData {
 
 export interface FacultyDashboardStats {
   totalAssignedStudents: number;
-  subjectsAssigned: number;
-  todaysAttendance: number;
-  pendingAttendance: number;
-  avgAttendance: number;
-  avgCgpa: number;
-  studentsWithBacklogs: number;
+  subjectsAssigned?: number;
+  assignments?: number;
+  todaysAttendance?: number;
+  pendingAttendance?: number;
+  avgAttendance?: number;
+  avgCgpa?: number;
+  studentsWithBacklogs?: Array<{
+    backlogs: number;
+    name: string;
+    hallTicketNumber: string;
+  }>;
+  backlogStudents?: Array<{
+    backlogs: number;
+    name: string;
+    hallTicketNumber: string;
+  }>;
 }
 
 export interface StudentDashboardStats {
+  studentName?: string;
+  hallTicketNumber?: string;
   currentSgpa: number;
   currentCgpa: number;
   overallAttendance: number;
-  totalCertificates: number;
-  totalAchievements: number;
-  pendingCertificates: number;
-  pendingAchievements: number;
+  totalCertificates?: number;
+  totalAchievements?: number;
+  pendingCertificates?: number;
+  pendingAchievements?: number;
+  recentNotifications?: Array<{
+    _id: string;
+    title: string;
+    message: string;
+    createdAt: string;
+    senderName: string;
+  }>;
+  timeline?: Array<{
+    type: string;
+    title: string;
+    description: string;
+    date: string;
+  }>;
 }
 
 export interface Subject {

@@ -1,47 +1,66 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Users, BookMarked, CheckSquare, Search, AlertCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
-import * as facultyApi from '../../api/faculty.api';
-import { StatsCard } from '../../components/shared/StatsCard';
-import { LoadingScreen } from '../../components/shared/LoadingScreen';
-import { Badge } from '../../components/ui/Badge';
-import { Input } from '../../components/ui/Input';
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Users,
+  BookMarked,
+  CheckSquare,
+  Search,
+  AlertCircle,
+  AlertTriangle,
+  AlertOctagon,
+} from "lucide-react";
+import { facultyApi } from "../../api/faculty.api";
+import { StatsCard } from "../../components/shared/StatsCard";
+import { LoadingScreen } from "../../components/shared/LoadingScreen";
+import { Badge } from "../../components/ui/Badge";
+import { Input } from "../../components/ui/Input";
 
 export const FacultyDashboard: React.FC = () => {
-  const [backlogFilter, setBacklogFilter] = useState<'all' | '1' | '2' | '3+'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [backlogFilter, setBacklogFilter] = useState<"all" | "1" | "2" | "3+">(
+    "all",
+  );
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ['facultyDashboard'],
+    queryKey: ["facultyDashboard"],
     queryFn: () => facultyApi.getDashboard(),
   });
 
   if (isLoading) return <LoadingScreen />;
 
-  const stats = response?.data || {
+  const stats = (response?.data ?? {
     totalAssignedStudents: 0,
     assignments: 0,
-    backlogStudents: [],
-  };
+    studentsWithBacklogs: [],
+  }) as any;
 
-  const backlogStudents = stats.backlogStudents || [];
+  const backlogStudents = stats.studentsWithBacklogs || [];
 
   // Count metrics for header buttons
-  const oneBacklogCount = backlogStudents.filter((s: any) => s.backlogs === 1).length;
-  const twoBacklogCount = backlogStudents.filter((s: any) => s.backlogs === 2).length;
-  const multiBacklogCount = backlogStudents.filter((s: any) => s.backlogs >= 3).length;
+  const oneBacklogCount = backlogStudents.filter(
+    (s: any) => s.backlogs === 1,
+  ).length;
+  const twoBacklogCount = backlogStudents.filter(
+    (s: any) => s.backlogs === 2,
+  ).length;
+  const multiBacklogCount = backlogStudents.filter(
+    (s: any) => s.backlogs >= 3,
+  ).length;
 
   // Filter students based on active tab and search query
   const filteredBacklogs = backlogStudents.filter((student: any) => {
-    if (backlogFilter === '1') return student.backlogs === 1;
-    if (backlogFilter === '2') return student.backlogs === 2;
-    if (backlogFilter === '3+') return student.backlogs >= 3;
+    if (backlogFilter === "1") return student.backlogs === 1;
+    if (backlogFilter === "2") return student.backlogs === 2;
+    if (backlogFilter === "3+") return student.backlogs >= 3;
     return true;
   });
 
-  const searchedBacklogs = filteredBacklogs.filter((student: any) =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.hallTicketNumber.toLowerCase().includes(searchQuery.toLowerCase())
+  const searchedBacklogs = filteredBacklogs.filter(
+    (student: any) =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.hallTicketNumber
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -51,7 +70,8 @@ export const FacultyDashboard: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
         <h2 className="text-xl font-bold">Hello, Faculty Member</h2>
         <p className="text-xs text-slate-400 mt-1">
-          Welcome to the Faculty administration panel. You can mark attendance, review student certificates, and see class analytics.
+          Welcome to the Faculty administration panel. You can mark attendance,
+          review student certificates, and see class analytics.
         </p>
       </div>
 
@@ -88,7 +108,8 @@ export const FacultyDashboard: React.FC = () => {
               Assigned Students Backlog Directory
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Identify and track backlog counts and failed subjects for students in your sections.
+              Identify and track backlog counts and failed subjects for students
+              in your sections.
             </p>
           </div>
           <div className="w-full sm:w-64">
@@ -105,43 +126,43 @@ export const FacultyDashboard: React.FC = () => {
         {/* Tab Filters */}
         <div className="flex flex-wrap gap-2.5">
           <button
-            onClick={() => setBacklogFilter('all')}
+            onClick={() => setBacklogFilter("all")}
             className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all ${
-              backlogFilter === 'all'
-                ? 'bg-slate-900 border-slate-900 text-white dark:bg-slate-100 dark:border-slate-100 dark:text-slate-900'
-                : 'bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30'
+              backlogFilter === "all"
+                ? "bg-slate-900 border-slate-900 text-white dark:bg-slate-100 dark:border-slate-100 dark:text-slate-900"
+                : "bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30"
             }`}
           >
             All Backlog Students ({backlogStudents.length})
           </button>
           <button
-            onClick={() => setBacklogFilter('1')}
+            onClick={() => setBacklogFilter("1")}
             className={`px-4 py-2 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all ${
-              backlogFilter === '1'
-                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 font-bold'
-                : 'bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30'
+              backlogFilter === "1"
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 font-bold"
+                : "bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30"
             }`}
           >
-            <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-            1 Backlog ({oneBacklogCount})
+            <AlertCircle className="w-3.5 h-3.5 text-amber-500" />1 Backlog (
+            {oneBacklogCount})
           </button>
           <button
-            onClick={() => setBacklogFilter('2')}
+            onClick={() => setBacklogFilter("2")}
             className={`px-4 py-2 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all ${
-              backlogFilter === '2'
-                ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400 font-bold'
-                : 'bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30'
+              backlogFilter === "2"
+                ? "bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400 font-bold"
+                : "bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30"
             }`}
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
-            2 Backlogs ({twoBacklogCount})
+            <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />2 Backlogs
+            ({twoBacklogCount})
           </button>
           <button
-            onClick={() => setBacklogFilter('3+')}
+            onClick={() => setBacklogFilter("3+")}
             className={`px-4 py-2 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all ${
-              backlogFilter === '3+'
-                ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 font-bold'
-                : 'bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30'
+              backlogFilter === "3+"
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 font-bold"
+                : "bg-transparent border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/30"
             }`}
           >
             <AlertOctagon className="w-3.5 h-3.5 text-rose-500" />
@@ -157,22 +178,22 @@ export const FacultyDashboard: React.FC = () => {
             </p>
             <p className="text-xs text-slate-400 max-w-[280px] mx-auto">
               {searchQuery
-                ? 'No matches found. Try adjusting your search query.'
-                : 'Great! All assigned students are currently clear of any backlogs in this category.'}
+                ? "No matches found. Try adjusting your search query."
+                : "Great! All assigned students are currently clear of any backlogs in this category."}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {searchedBacklogs.map((student: any, idx: number) => {
               // Decide badge color based on backlog severity
-              let severityBadge = 'warning';
-              let borderStyle = 'border-slate-200 dark:border-slate-800';
+              let severityBadge = "warning";
+              let borderStyle = "border-slate-200 dark:border-slate-800";
               if (student.backlogs === 2) {
-                severityBadge = 'warning';
-                borderStyle = 'border-orange-200 dark:border-orange-900/30';
+                severityBadge = "warning";
+                borderStyle = "border-orange-200 dark:border-orange-900/30";
               } else if (student.backlogs >= 3) {
-                severityBadge = 'danger';
-                borderStyle = 'border-rose-200 dark:border-rose-900/30';
+                severityBadge = "danger";
+                borderStyle = "border-rose-200 dark:border-rose-900/30";
               }
 
               return (
@@ -190,7 +211,8 @@ export const FacultyDashboard: React.FC = () => {
                       </h4>
                     </div>
                     <Badge variant={severityBadge as any}>
-                      {student.backlogs} {student.backlogs === 1 ? 'Backlog' : 'Backlogs'}
+                      {student.backlogs}{" "}
+                      {student.backlogs === 1 ? "Backlog" : "Backlogs"}
                     </Badge>
                   </div>
 

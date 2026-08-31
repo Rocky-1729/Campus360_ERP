@@ -1,47 +1,52 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Award, FileText, Download, Check, X, ShieldAlert } from 'lucide-react';
-import toast from 'react-hot-toast';
-import * as facultyApi from '../../api/faculty.api';
-import { Table } from '../../components/ui/Table';
-import type { Column } from '../../components/ui/Table';;
-import { Button } from '../../components/ui/Button';
-import { Modal } from '../../components/ui/Modal';
-import { Badge } from '../../components/ui/Badge';
-import { Input } from '../../components/ui/Input';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Download, Check, X } from "lucide-react";
+import toast from "react-hot-toast";
+import { facultyApi } from "../../api/faculty.api";
+import { Table } from "../../components/ui/Table";
+import type { Column } from "../../components/ui/Table";
+import { Button } from "../../components/ui/Button";
+import { Modal } from "../../components/ui/Modal";
 
 export const CertificateReview: React.FC = () => {
   const queryClient = useQueryClient();
   const [reviewItem, setReviewItem] = useState<any | null>(null);
-  const [remarks, setRemarks] = useState<string>('');
+  const [remarks, setRemarks] = useState<string>("");
 
   // Fetch pending certificates
   const { data: response, isLoading } = useQuery({
-    queryKey: ['pendingCertificatesList'],
+    queryKey: ["pendingCertificatesList"],
     queryFn: () => facultyApi.getPendingCertificates(),
   });
 
   const reviewMutation = useMutation({
     // status = approved / rejected
-    mutationFn: ({ id, status, remarks }: { id: string; status: 'approved' | 'rejected'; remarks: string }) =>
-      facultyApi.reviewCertificate(id, { status, remarks }),
+    mutationFn: ({
+      id,
+      status,
+      remarks,
+    }: {
+      id: string;
+      status: "approved" | "rejected";
+      remarks: string;
+    }) => facultyApi.reviewCertificate(id, { status, remarks }),
     onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ['pendingCertificatesList'] });
-      toast.success(res.message || 'Certificate status updated.');
+      queryClient.invalidateQueries({ queryKey: ["pendingCertificatesList"] });
+      toast.success(res.message || "Certificate status updated.");
       setReviewItem(null);
-      setRemarks('');
+      setRemarks("");
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Failed to submit review.');
+      toast.error(err.message || "Failed to submit review.");
     },
   });
 
   const handleReviewTrigger = (item: any) => {
     setReviewItem(item);
-    setRemarks(item.remarks || '');
+    setRemarks(item.remarks || "");
   };
 
-  const handleAction = (status: 'approved' | 'rejected') => {
+  const handleAction = (status: "approved" | "rejected") => {
     if (!reviewItem) return;
     reviewMutation.mutate({ id: reviewItem._id, status, remarks });
   };
@@ -49,23 +54,28 @@ export const CertificateReview: React.FC = () => {
   const certs = response?.data || [];
 
   const columns: Column<any>[] = [
-    { header: 'HT Number', accessor: 'hallTicketNumber', sortable: true, sortKey: 'hallTicketNumber' },
-    { header: 'Type', accessor: 'type' },
-    { header: 'Title', accessor: 'title' },
-    { header: 'Organization', accessor: 'issuingOrganization' },
     {
-      header: 'Issue Date',
+      header: "HT Number",
+      accessor: "hallTicketNumber",
+      sortable: true,
+      sortKey: "hallTicketNumber",
+    },
+    { header: "Type", accessor: "type" },
+    { header: "Title", accessor: "title" },
+    { header: "Organization", accessor: "issuingOrganization" },
+    {
+      header: "Issue Date",
       accessor: (row) =>
         row.issueDate
-          ? new Date(row.issueDate).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
+          ? new Date(row.issueDate).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
             })
-          : 'N/A',
+          : "N/A",
     },
     {
-      header: 'Actions',
+      header: "Actions",
       accessor: (row) => (
         <div className="flex items-center gap-2">
           {row.certificateUrl && (
@@ -94,8 +104,13 @@ export const CertificateReview: React.FC = () => {
   return (
     <div className="space-y-6 text-left">
       <div>
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Certificates Approval Verification</h2>
-        <p className="text-xs text-slate-400">Review and approve student-uploaded co-curricular training certificates.</p>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+          Certificates Approval Verification
+        </h2>
+        <p className="text-xs text-slate-400">
+          Review and approve student-uploaded co-curricular training
+          certificates.
+        </p>
       </div>
 
       <Table
@@ -117,10 +132,19 @@ export const CertificateReview: React.FC = () => {
         {reviewItem && (
           <div className="space-y-4 pt-2 text-left text-xs text-slate-600 dark:text-slate-400">
             <div className="grid grid-cols-2 gap-4 border-b border-slate-100 dark:border-slate-850 pb-3">
-              <p><strong>Student HT:</strong> {reviewItem.hallTicketNumber}</p>
-              <p><strong>Certificate Type:</strong> {reviewItem.type}</p>
-              <p><strong>Title:</strong> {reviewItem.title}</p>
-              <p><strong>Organization:</strong> {reviewItem.issuingOrganization || 'N/A'}</p>
+              <p>
+                <strong>Student HT:</strong> {reviewItem.hallTicketNumber}
+              </p>
+              <p>
+                <strong>Certificate Type:</strong> {reviewItem.type}
+              </p>
+              <p>
+                <strong>Title:</strong> {reviewItem.title}
+              </p>
+              <p>
+                <strong>Organization:</strong>{" "}
+                {reviewItem.issuingOrganization || "N/A"}
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -137,13 +161,18 @@ export const CertificateReview: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <Button type="button" variant="ghost" onClick={() => setReviewItem(null)} id="cert-review-close">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setReviewItem(null)}
+                id="cert-review-close"
+              >
                 Close
               </Button>
               <Button
                 type="button"
                 variant="danger"
-                onClick={() => handleAction('rejected')}
+                onClick={() => handleAction("rejected")}
                 isLoading={reviewMutation.isPending}
                 id="cert-review-reject"
               >
@@ -152,7 +181,7 @@ export const CertificateReview: React.FC = () => {
               <Button
                 type="button"
                 variant="success"
-                onClick={() => handleAction('approved')}
+                onClick={() => handleAction("approved")}
                 isLoading={reviewMutation.isPending}
                 id="cert-review-approve"
               >

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -14,18 +14,20 @@ import {
   ChevronRight,
   BookMarked,
   UserSquare2,
-  Menu,
   GraduationCap,
   Database,
-} from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+} from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
 
 interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  mobileOpen,
+  setMobileOpen,
+}) => {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -36,37 +38,129 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
   // Define navigation links based on user role
   const getNavLinks = () => {
     switch (role) {
-      case 'admin':
+      case "admin":
         return [
-          { to: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-          { to: '/admin/faculty', label: 'Faculty Management', icon: <Users className="w-5 h-5" /> },
-          { to: '/admin/students/upload', label: 'Upload Students', icon: <Upload className="w-5 h-5" /> },
-          { to: '/admin/marks/upload', label: 'Upload Marks', icon: <FileSpreadsheet className="w-5 h-5" /> },
-          { to: '/admin/subjects', label: 'Subject Management', icon: <BookOpen className="w-5 h-5" /> },
-          { to: '/admin/assignments', label: 'Faculty Assignment', icon: <BookMarked className="w-5 h-5" /> },
-          { to: '/admin/analytics', label: 'Analytics', icon: <BarChart3 className="w-5 h-5" /> },
-          { to: '/admin/notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-          { to: '/admin/students/search', label: 'Search Students', icon: <Search className="w-5 h-5" /> },
-          { to: '/admin/system', label: 'System Backup', icon: <Database className="w-5 h-5" /> },
+          {
+            to: "/admin/dashboard",
+            label: "Dashboard",
+            icon: <LayoutDashboard className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/faculty",
+            label: "Faculty Management",
+            icon: <Users className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/students/upload",
+            label: "Upload Students",
+            icon: <Upload className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/marks/upload",
+            label: "Upload Marks",
+            icon: <FileSpreadsheet className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/subjects",
+            label: "Subject Management",
+            icon: <BookOpen className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/assignments",
+            label: "Faculty Assignment",
+            icon: <BookMarked className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/analytics",
+            label: "Analytics",
+            icon: <BarChart3 className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/notifications",
+            label: "Notifications",
+            icon: <Bell className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/students/search",
+            label: "Search Students",
+            icon: <Search className="w-5 h-5" />,
+          },
+          {
+            to: "/admin/system",
+            label: "System Backup",
+            icon: <Database className="w-5 h-5" />,
+          },
         ];
-      case 'faculty':
+      case "faculty":
         return [
-          { to: '/faculty/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-          { to: '/faculty/students', label: 'My Students', icon: <Users className="w-5 h-5" /> },
-          { to: '/faculty/attendance', label: 'Mark Attendance', icon: <FileSpreadsheet className="w-5 h-5" /> },
-          { to: '/faculty/certificates', label: 'Certificates Review', icon: <Upload className="w-5 h-5" /> },
-          { to: '/faculty/achievements', label: 'Achievements Review', icon: <BookMarked className="w-5 h-5" /> },
-          { to: '/faculty/analytics', label: 'Class Analytics', icon: <BarChart3 className="w-5 h-5" /> },
-          { to: '/faculty/notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
+          {
+            to: "/faculty/dashboard",
+            label: "Dashboard",
+            icon: <LayoutDashboard className="w-5 h-5" />,
+          },
+          {
+            to: "/faculty/students",
+            label: "My Students",
+            icon: <Users className="w-5 h-5" />,
+          },
+          {
+            to: "/faculty/attendance",
+            label: "Mark Attendance",
+            icon: <FileSpreadsheet className="w-5 h-5" />,
+          },
+          {
+            to: "/faculty/certificates",
+            label: "Certificates Review",
+            icon: <Upload className="w-5 h-5" />,
+          },
+          {
+            to: "/faculty/achievements",
+            label: "Achievements Review",
+            icon: <BookMarked className="w-5 h-5" />,
+          },
+          {
+            to: "/faculty/analytics",
+            label: "Class Analytics",
+            icon: <BarChart3 className="w-5 h-5" />,
+          },
+          {
+            to: "/faculty/notifications",
+            label: "Notifications",
+            icon: <Bell className="w-5 h-5" />,
+          },
         ];
-      case 'student':
+      case "student":
         return [
-          { to: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-          { to: '/student/marks', label: 'Academic Records', icon: <BookOpen className="w-5 h-5" /> },
-          { to: '/student/attendance', label: 'My Attendance', icon: <FileSpreadsheet className="w-5 h-5" /> },
-          { to: '/student/certificates', label: 'Upload Certificates', icon: <Upload className="w-5 h-5" /> },
-          { to: '/student/achievements', label: 'Upload Achievements', icon: <BookMarked className="w-5 h-5" /> },
-          { to: '/student/notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
+          {
+            to: "/student/dashboard",
+            label: "Dashboard",
+            icon: <LayoutDashboard className="w-5 h-5" />,
+          },
+          {
+            to: "/student/marks",
+            label: "Academic Records",
+            icon: <BookOpen className="w-5 h-5" />,
+          },
+          {
+            to: "/student/attendance",
+            label: "My Attendance",
+            icon: <FileSpreadsheet className="w-5 h-5" />,
+          },
+          {
+            to: "/student/certificates",
+            label: "Upload Certificates",
+            icon: <Upload className="w-5 h-5" />,
+          },
+          {
+            to: "/student/achievements",
+            label: "Upload Achievements",
+            icon: <BookMarked className="w-5 h-5" />,
+          },
+          {
+            to: "/student/notifications",
+            label: "Notifications",
+            icon: <Bell className="w-5 h-5" />,
+          },
         ];
       default:
         return [];
@@ -95,7 +189,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           className="hidden md:flex p-1 hover:bg-slate-800 hover:text-white rounded-lg transition-colors cursor-pointer"
           id="btn-sidebar-collapse"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
         </button>
       </div>
 
@@ -108,12 +206,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             className={({ isActive }) =>
               `flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
-                  : 'hover:bg-slate-800/50 hover:text-slate-100'
+                  ? "bg-primary-600 text-white shadow-lg shadow-primary-900/20"
+                  : "hover:bg-slate-800/50 hover:text-slate-100"
               }`
             }
             onClick={() => setMobileOpen(false)}
-            id={`nav-link-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+            id={`nav-link-${link.label.toLowerCase().replace(/\s/g, "-")}`}
           >
             {link.icon}
             {!collapsed && <span className="truncate">{link.label}</span>}
@@ -130,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           {!collapsed && (
             <div className="text-left overflow-hidden">
               <p className="text-xs font-semibold text-slate-200 line-clamp-1">
-                {user.email.split('@')[0]}
+                {user.email.split("@")[0]}
               </p>
               <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
                 {role}
@@ -155,7 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       {/* Desktop Sidebar */}
       <aside
         className={`hidden md:block h-screen sticky top-0 transition-all duration-300 ${
-          collapsed ? 'w-20' : 'w-64'
+          collapsed ? "w-20" : "w-64"
         }`}
       >
         {sidebarContent}
@@ -164,13 +262,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       {/* Mobile Slide-in Drawer */}
       <div
         className={`md:hidden fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 ${
-          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          mobileOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setMobileOpen(false)}
       >
         <aside
           className={`fixed top-0 bottom-0 left-0 w-64 bg-slate-900 transition-transform duration-300 ${
-            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           onClick={(e) => e.stopPropagation()}
         >

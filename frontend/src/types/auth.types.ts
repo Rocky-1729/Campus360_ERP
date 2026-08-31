@@ -5,11 +5,13 @@ export interface LoginCredentials {
 
 export interface User {
   _id: string;
+  id?: string;
   username: string;
   email: string;
-  role: 'admin' | 'faculty' | 'student';
+  role: "admin" | "faculty" | "student";
   isActive: boolean;
   createdAt: string;
+  profile?: { _id?: string };
 }
 
 export interface AuthResponse {

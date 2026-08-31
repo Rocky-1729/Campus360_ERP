@@ -1,15 +1,18 @@
-import React from 'react';
-import { Menu, LogOut } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
-import { ThemeToggle } from '../ui/ThemeToggle';
-import { NotificationBell } from '../shared/NotificationBell';
+import React from "react";
+import { Menu } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { ThemeToggle } from "../ui/ThemeToggle";
+import { NotificationBell } from "../shared/NotificationBell";
 
 interface HeaderProps {
   onMenuClick: () => void;
   title?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onMenuClick, title = 'Dashboard' }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onMenuClick,
+  title = "Dashboard",
+}) => {
   const { user } = useAuth();
 
   return (
@@ -44,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, title = 'Dashboard'
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {user?.email.split('@')[0]}
+              {user?.email.split("@")[0]}
             </p>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
               {user?.role}

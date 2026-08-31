@@ -1,22 +1,13 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Users,
-  GraduationCap,
-  BookOpen,
-  UploadCloud,
-  Award,
-  Bell,
-  CheckCircle2,
-  Calendar,
-} from 'lucide-react';
-import { adminApi } from '../../api/admin.api';
-import { StatsCard } from '../../components/shared/StatsCard';
-import { LoadingScreen } from '../../components/shared/LoadingScreen';
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Users, GraduationCap, BookOpen, Bell } from "lucide-react";
+import { adminApi } from "../../api/admin.api";
+import { StatsCard } from "../../components/shared/StatsCard";
+import { LoadingScreen } from "../../components/shared/LoadingScreen";
 
 export const AdminDashboard: React.FC = () => {
   const { data: response, isLoading } = useQuery({
-    queryKey: ['adminDashboard'],
+    queryKey: ["adminDashboard"],
     queryFn: () => adminApi.getDashboard(),
   });
 
@@ -40,7 +31,8 @@ export const AdminDashboard: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
         <h2 className="text-xl font-bold">Hello, Department HOD</h2>
         <p className="text-xs text-slate-400 mt-1">
-          Welcome to the Campus360 Department Administration panel. Here is your overview of CSE Department.
+          Welcome to the Campus360 Department Administration panel. Here is your
+          overview of CSE Department.
         </p>
       </div>
 
@@ -81,14 +73,18 @@ export const AdminDashboard: React.FC = () => {
         {/* Certificate approvals panel */}
         <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Certificates Overview</h3>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              Certificates Overview
+            </h3>
             <span className="px-2.5 py-0.5 bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 text-[10px] font-bold rounded-full border border-primary-200/40">
               {stats.totalCertificates} Total
             </span>
           </div>
           <div className="flex items-center justify-between py-2 text-xs">
             <span className="text-slate-500">Pending Review</span>
-            <span className="font-bold text-amber-500">{stats.pendingCertificates} request(s)</span>
+            <span className="font-bold text-amber-500">
+              {stats.pendingCertificates} request(s)
+            </span>
           </div>
           <div className="flex items-center justify-between py-2 text-xs border-t border-slate-100 dark:border-slate-800">
             <span className="text-slate-500">Approved Certificates</span>
@@ -101,14 +97,18 @@ export const AdminDashboard: React.FC = () => {
         {/* Achievements approvals panel */}
         <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Achievements Overview</h3>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              Achievements Overview
+            </h3>
             <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-200/40">
               {stats.totalAchievements} Total
             </span>
           </div>
           <div className="flex items-center justify-between py-2 text-xs">
             <span className="text-slate-500">Pending Review</span>
-            <span className="font-bold text-amber-500">{stats.pendingAchievements} request(s)</span>
+            <span className="font-bold text-amber-500">
+              {stats.pendingAchievements} request(s)
+            </span>
           </div>
           <div className="flex items-center justify-between py-2 text-xs border-t border-slate-100 dark:border-slate-800">
             <span className="text-slate-500">Approved Achievements</span>

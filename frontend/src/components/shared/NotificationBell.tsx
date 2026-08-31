@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckSquare, BellOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import * as notificationApi from '../../api/notification.api';
-import { useAuth } from '../../hooks/useAuth';
-import { useNotificationStore } from '../../store/notificationStore';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Bell, CheckSquare, BellOff } from "lucide-react";
+import { Link } from "react-router-dom";
+import { notificationApi } from "../../api/notification.api";
+import { useAuth } from "../../hooks/useAuth";
+import { useNotificationStore } from "../../store/notificationStore";
 
 export const NotificationBell: React.FC = () => {
   const { user } = useAuth();
@@ -13,12 +13,14 @@ export const NotificationBell: React.FC = () => {
   const { unreadCount, setUnreadCount } = useNotificationStore();
 
   const { data: response } = useQuery({
-    queryKey: ['notifications'],
+    queryKey: ["notifications"],
     queryFn: () => notificationApi.getNotifications(),
     enabled: !!user,
     select: (res) => {
       const list = res.data || [];
-      const unreads = list.filter((n: any) => !n.readBy.includes(user?.id)).length;
+      const unreads = list.filter(
+        (n: any) => !n.readBy.includes(user?.id),
+      ).length;
       setUnreadCount(unreads);
       return list.slice(0, 5); // top 5
     },
@@ -27,14 +29,14 @@ export const NotificationBell: React.FC = () => {
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationApi.markAllAsRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationApi.markAsRead(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 
@@ -62,7 +64,9 @@ export const NotificationBell: React.FC = () => {
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 mt-2.5 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-20 overflow-hidden text-left animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200">Notifications</h3>
+              <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Notifications
+              </h3>
               {unreadCount > 0 && (
                 <button
                   onClick={() => markAllReadMutation.mutate()}
@@ -86,24 +90,30 @@ export const NotificationBell: React.FC = () => {
                   return (
                     <div
                       key={notif._id}
-                      onClick={() => !isRead && markReadMutation.mutate(notif._id)}
+                      onClick={() =>
+                        !isRead && markReadMutation.mutate(notif._id)
+                      }
                       className={`p-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer text-left ${
-                        !isRead ? 'bg-primary-50/10 dark:bg-primary-950/5' : ''
+                        !isRead ? "bg-primary-50/10 dark:bg-primary-950/5" : ""
                       }`}
                     >
                       <div className="flex justify-between items-start gap-2">
-                        <p className={`text-xs text-slate-800 dark:text-slate-200 line-clamp-1 ${!isRead ? 'font-semibold' : ''}`}>
+                        <p
+                          className={`text-xs text-slate-800 dark:text-slate-200 line-clamp-1 ${!isRead ? "font-semibold" : ""}`}
+                        >
                           {notif.title}
                         </p>
-                        {!isRead && <span className="w-1.5 h-1.5 bg-primary-500 rounded-full shrink-0 mt-1" />}
+                        {!isRead && (
+                          <span className="w-1.5 h-1.5 bg-primary-500 rounded-full shrink-0 mt-1" />
+                        )}
                       </div>
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
                         {notif.message}
                       </p>
                       <p className="text-[9px] text-slate-400 mt-1">
-                        {new Date(notif.createdAt).toLocaleDateString('en-IN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
+                        {new Date(notif.createdAt).toLocaleDateString("en-IN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </p>
                     </div>
@@ -113,7 +123,13 @@ export const NotificationBell: React.FC = () => {
             </div>
 
             <Link
-              to={user?.role === 'admin' ? '/admin/notifications' : user?.role === 'faculty' ? '/faculty/notifications' : '/student/notifications'}
+              to={
+                user?.role === "admin"
+                  ? "/admin/notifications"
+                  : user?.role === "faculty"
+                    ? "/faculty/notifications"
+                    : "/student/notifications"
+              }
               onClick={() => setOpen(false)}
               className="block py-2.5 text-center text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-primary-600 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800 transition-colors"
             >
