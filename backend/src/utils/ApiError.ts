@@ -36,6 +36,11 @@ export class ApiError extends Error {
     return new ApiError(404, message);
   }
 
+  /** Create a 409 Conflict error */
+  static conflict(message: string = 'Conflict', errors: string[] = []): ApiError {
+    return new ApiError(409, message, errors);
+  }
+
   /** Create a 500 Internal Server Error */
   static internal(message: string = 'Internal server error'): ApiError {
     return new ApiError(500, message);

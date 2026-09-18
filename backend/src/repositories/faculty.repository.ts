@@ -1,19 +1,37 @@
 import * as db from '../config/database';
+import { getSqliteDB } from '../config/sqliteDatabase';
 import { IFaculty, IFacultyAssignment } from '../interfaces/db.interface';
 
 export const facultyRepository = {
   findById: async (id: number): Promise<IFaculty | undefined> => {
-    return db.get<IFaculty>('SELECT * FROM faculty WHERE id = ? AND isActive = 1', [id]);
+    try {
+      return await db.get<IFaculty>('SELECT * FROM faculty WHERE id = ? AND isActive = 1', [id]);
+    } catch {
+      const sdb = await getSqliteDB();
+      return sdb.get<IFaculty>('SELECT * FROM faculty WHERE id = ? AND isActive = 1', [id]);
+    }
   },
 
   findByFacultyId: async (facultyId: string): Promise<IFaculty | undefined> => {
-    return db.get<IFaculty>('SELECT * FROM faculty WHERE facultyId = ? AND isActive = 1', [
-      facultyId.trim(),
-    ]);
+    try {
+      return await db.get<IFaculty>('SELECT * FROM faculty WHERE facultyId = ? AND isActive = 1', [
+        facultyId.trim(),
+      ]);
+    } catch {
+      const sdb = await getSqliteDB();
+      return sdb.get<IFaculty>('SELECT * FROM faculty WHERE facultyId = ? AND isActive = 1', [
+        facultyId.trim(),
+      ]);
+    }
   },
 
   findByUserId: async (userId: number): Promise<IFaculty | undefined> => {
-    return db.get<IFaculty>('SELECT * FROM faculty WHERE userId = ? AND isActive = 1', [userId]);
+    try {
+      return await db.get<IFaculty>('SELECT * FROM faculty WHERE userId = ? AND isActive = 1', [userId]);
+    } catch {
+      const sdb = await getSqliteDB();
+      return sdb.get<IFaculty>('SELECT * FROM faculty WHERE userId = ? AND isActive = 1', [userId]);
+    }
   },
 
   create: async (faculty: IFaculty): Promise<number> => {

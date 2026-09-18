@@ -4,27 +4,25 @@ import { Bell, CheckSquare, BellOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { notificationApi } from "../../api/notification.api";
 import { useAuth } from "../../hooks/useAuth";
-import { useNotificationStore } from "../../store/notificationStore";
 
 export const NotificationBell: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const { unreadCount, setUnreadCount } = useNotificationStore();
 
   const { data: response } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => notificationApi.getNotifications(),
     enabled: !!user,
-    select: (res) => {
-      const list = res.data || [];
-      const unreads = list.filter(
-        (n: any) => !n.readBy.includes(user?.id),
-      ).length;
-      setUnreadCount(unreads);
-      return list.slice(0, 5); // top 5
-    },
   });
+
+  const allNotifications: any[] = response?.data || [];
+  const unreadCount = allNotifications.filter(
+    (n: any) =>
+      !n.readBy?.includes(Number(user?.id)) &&
+      !n.readBy?.includes(String(user?.id)),
+  ).length;
+  const list = allNotifications.slice(0, 5);
 
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationApi.markAllAsRead(),
@@ -39,8 +37,6 @@ export const NotificationBell: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
-
-  const list = response || [];
 
   return (
     <div className="relative">
@@ -86,7 +82,9 @@ export const NotificationBell: React.FC = () => {
                 </div>
               ) : (
                 list.map((notif: any) => {
-                  const isRead = notif.readBy.includes(user?.id);
+                  const isRead =
+                    notif.readBy?.includes(Number(user?.id)) ||
+                    notif.readBy?.includes(String(user?.id));
                   return (
                     <div
                       key={notif._id}

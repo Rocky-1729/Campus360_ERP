@@ -1,300 +1,540 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, GraduationCap, BookOpen, Clock } from "lucide-react";
-import toast from "react-hot-toast";
-import { adminApi } from "../../api/admin.api";
+import {
+  Search,
+  GraduationCap,
+  BookOpen,
+  ArrowLeft,
+  ChevronRight,
+  Filter,
+  Users,
+  Building2,
+} from "lucide-react";
+import { studentsService } from "../../services/students.service";
+import type { StudentListItem } from "../../services/students.service";
+import { academicService } from "../../services/academic.service";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
 import { Table } from "../../components/ui/Table";
 import type { Column } from "../../components/ui/Table";
 import { Badge } from "../../components/ui/Badge";
 import { StudentProfileCard } from "../../components/shared/StudentProfileCard";
-import { Select } from "../../components/ui/Select";
 
 export const StudentSearch: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [queryTerm, setQueryTerm] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("personal");
-  const [semFilter, setSemFilter] = useState<string>("");
+  // Filter States
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [activeSearch, setActiveSearch] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string>("");
+  const [programId, setProgramId] = useState<string>("");
+  const [batchId, setBatchId] = useState<string>("");
+  const [sectionId, setSectionId] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
 
-  // Query details when searching
-  const { data: response, isLoading } = useQuery({
-    queryKey: ["studentProfileSearch", queryTerm],
-    queryFn: async () => {
-      try {
-        const res = await adminApi.searchStudent(queryTerm);
-        toast.success("Student found.");
-        return res;
-      } catch (err: any) {
-        toast.error(err.message || "Student not found.");
-        throw err;
-      }
-    },
-    enabled: !!queryTerm,
-    retry: false,
+  // Selected student for detail view
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("personal");
+
+  // Fetch Academic Filters Dynamically from PostgreSQL
+  const { data: departments = [] } = useQuery({
+    queryKey: ["academicDepartments"],
+    queryFn: () => academicService.getDepartments(),
+  });
+
+  const { data: programs = [] } = useQuery({
+    queryKey: ["academicPrograms", departmentId],
+    queryFn: () => academicService.getPrograms(departmentId || undefined),
+  });
+
+  const { data: batches = [] } = useQuery({
+    queryKey: ["academicBatches", programId],
+    queryFn: () => academicService.getBatches(programId || undefined),
+  });
+
+  const { data: sections = [] } = useQuery({
+    queryKey: ["academicSections", batchId],
+    queryFn: () => academicService.getSections(batchId || undefined),
+  });
+
+  // Fetch Overall Database Counts
+  const { data: statusCounts } = useQuery({
+    queryKey: ["studentStatusCounts"],
+    queryFn: () => studentsService.getStatusCounts(),
+  });
+
+  // Fetch Student Directory from PostgreSQL
+  const {
+    data: directoryResponse,
+    isLoading: isDirectoryLoading,
+    isError: isDirectoryError,
+  } = useQuery({
+    queryKey: [
+      "studentsDirectory",
+      activeSearch,
+      departmentId,
+      programId,
+      batchId,
+      sectionId,
+      status,
+      page,
+    ],
+    queryFn: () =>
+      studentsService.getStudents({
+        search: activeSearch,
+        departmentId: departmentId ? Number(departmentId) : undefined,
+        programId: programId ? Number(programId) : undefined,
+        batchId: batchId ? Number(batchId) : undefined,
+        sectionId: sectionId ? Number(sectionId) : undefined,
+        status: status || undefined,
+        page,
+        limit: 15,
+      }),
+  });
+
+  // Fetch Single Student Profile when selected
+  const {
+    data: studentProfile,
+    isLoading: isProfileLoading,
+    isError: isProfileError,
+  } = useQuery({
+    queryKey: ["studentDetailProfile", selectedStudentId],
+    queryFn: () => (selectedStudentId ? studentsService.getStudentById(selectedStudentId) : null),
+    enabled: !!selectedStudentId,
   });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchTerm.trim()) {
-      toast.error("Please enter a Hall Ticket Number");
-      return;
-    }
-    setQueryTerm(searchTerm.trim().toUpperCase());
+    setPage(1);
+    setActiveSearch(searchInput.trim());
   };
 
-  const studentProfile: any = response?.data;
-  const studentData = studentProfile?.student ?? studentProfile ?? {};
-  const attendanceSummary = studentData?.attendanceSummary ?? {
-    percentage: 0,
-    present: 0,
-    total: 0,
-    subjectWise: [],
+  const handleClearFilters = () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setDepartmentId("");
+    setProgramId("");
+    setBatchId("");
+    setSectionId("");
+    setStatus("");
+    setPage(1);
   };
 
-  // Tabs config
-  const tabOptions = [
-    {
-      id: "personal",
-      label: "Personal Info",
-      icon: <GraduationCap className="w-4 h-4" />,
-    },
-    {
-      id: "academic",
-      label: "Academic Records",
-      icon: <BookOpen className="w-4 h-4" />,
-    },
-    {
-      id: "attendance",
-      label: "Attendance",
-      icon: <Clock className="w-4 h-4" />,
-    },
-  ];
+  const handleSelectStudent = (student: StudentListItem) => {
+    setSelectedStudentId(student.hallTicketNumber || student.id);
+    setActiveTab("personal");
+  };
 
-  // Marks Table Configuration
-  const marksColumns: Column<any>[] = [
-    { header: "Code", accessor: "subjectCode" },
-    { header: "Subject Name", accessor: "subjectName" },
-    { header: "Internal", accessor: "internalMarks" },
-    { header: "External", accessor: "externalMarks" },
-    { header: "Total", accessor: "totalMarks" },
-    { header: "Grade", accessor: "grade" },
-    { header: "Credits", accessor: "credits" },
+  // Table columns for student directory roster
+  const studentColumns: Column<StudentListItem>[] = [
     {
-      header: "Result",
+      header: "Hall Ticket",
       accessor: (row) => (
-        <Badge variant={row.result === "Pass" ? "success" : "danger"}>
-          {row.result}
-        </Badge>
+        <span className="font-mono font-bold text-primary-600 dark:text-primary-400">
+          {row.hallTicketNumber}
+        </span>
+      ),
+      sortable: true,
+    },
+    {
+      header: "Student Name",
+      accessor: "name",
+      sortable: true,
+    },
+    {
+      header: "Department",
+      accessor: (row) => row.departmentCode || row.departmentName || "N/A",
+    },
+    {
+      header: "Program",
+      accessor: (row) => row.programCode || row.programName || "N/A",
+    },
+    {
+      header: "Batch",
+      accessor: (row) => row.batchName || "N/A",
+    },
+    {
+      header: "Section",
+      accessor: (row) => (row.sectionName ? `Sec ${row.sectionName}` : "N/A"),
+    },
+    {
+      header: "Status",
+      accessor: (row) => {
+        const s = row.enrollmentStatus || "ACTIVE";
+        const variant = s === "ACTIVE" ? "success" : s === "GRADUATED" ? "primary" : "warning";
+        return <Badge variant={variant as any}>{s}</Badge>;
+      },
+    },
+    {
+      header: "Action",
+      accessor: (row) => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleSelectStudent(row)}
+          className="text-xs py-1 px-2.5"
+        >
+          View Profile <ChevronRight className="w-3.5 h-3.5 ml-1" />
+        </Button>
       ),
     },
   ];
 
-  // Attendance Table Configuration
-  const attendanceColumns: Column<any>[] = [
-    { header: "Subject", accessor: "subjectName" },
-    { header: "Total Classes", accessor: "total" },
-    { header: "Present", accessor: "present" },
-    { header: "Absent", accessor: "absent" },
-    { header: "Late", accessor: "late" },
-    {
-      header: "Percentage",
-      accessor: (row) => (
-        <div className="flex items-center gap-2">
-          <div className="w-16 bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden shrink-0">
-            <div
-              className={`h-2 rounded-full ${
-                row.percentage >= 75 ? "bg-emerald-500" : "bg-rose-500"
-              }`}
-              style={{ width: `${Math.min(row.percentage, 100)}%` }}
-            />
-          </div>
-          <span
-            className={`font-semibold ${row.percentage >= 75 ? "text-emerald-500" : "text-rose-500"}`}
-          >
-            {row.percentage}%
-          </span>
-        </div>
-      ),
-    },
-  ];
-
-  const semesterOptions = [
-    { label: "All Semesters", value: "" },
-    { label: "1-1", value: "1-1" },
-    { label: "1-2", value: "1-2" },
-    { label: "2-1", value: "2-1" },
-    { label: "2-2", value: "2-2" },
-    { label: "3-1", value: "3-1" },
-    { label: "3-2", value: "3-2" },
-    { label: "4-1", value: "4-1" },
-    { label: "4-2", value: "4-2" },
-  ];
-
-  // Filters for marks based on semFilter
-  const filteredMarks = studentProfile?.marks
-    ? studentProfile.marks.filter(
-        (m: any) => !semFilter || m.semester === semFilter,
-      )
-    : [];
+  const studentsList = directoryResponse?.students || [];
+  const pagination = directoryResponse?.pagination || { page: 1, limit: 15, total: 0, totalPages: 0 };
 
   return (
     <div className="space-y-6 text-left">
-      <div>
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-          Student Profile Search
-        </h2>
-        <p className="text-xs text-slate-400">
-          Search and retrieve complete student profiles, marks, and attendance
-          histories.
-        </p>
+      {/* Header Banner with Database Summary */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary-600" /> Student Directory & Search
+          </h2>
+          <p className="text-xs text-slate-400">
+            Real PostgreSQL student directory with academic filtering, batch tracking, and profile inspect.
+          </p>
+        </div>
+        {statusCounts && (
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800/40 rounded-xl text-xs font-semibold text-primary-700 dark:text-primary-300">
+              Total Students: <span className="font-bold">{statusCounts.students}</span>
+            </div>
+            <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              Active Enrollments: <span className="font-bold">{statusCounts.enrollments}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Search Input Bar */}
-      <form
-        onSubmit={handleSearchSubmit}
-        className="flex gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm max-w-xl"
-      >
-        <div className="flex-grow">
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Enter Hall Ticket Number (e.g. 2026CSE01)"
-            id="student-search-bar"
-          />
-        </div>
-        <Button
-          type="submit"
-          variant="primary"
-          isLoading={isLoading}
-          id="student-search-submit"
-        >
-          <Search className="w-4 h-4 mr-2" /> Search
-        </Button>
-      </form>
+      {/* Detail Profile Modal / Full View */}
+      {selectedStudentId && (
+        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedStudentId(null)}
+              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Student Directory
+            </Button>
+            <span className="text-xs text-slate-400">
+              Viewing PostgreSQL Profile for <strong className="text-slate-700 dark:text-slate-300">{selectedStudentId}</strong>
+            </span>
+          </div>
 
-      {/* Profile Details Displays */}
-      {studentProfile && (
-        <div className="space-y-6">
-          <StudentProfileCard student={studentData} />
-
-          {/* Tab Selection */}
-          <Tabs
-            tabs={tabOptions}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-            id="student-search-tabs"
-          />
-
-          {/* Personal Info Tab */}
-          {activeTab === "personal" && (
-            <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Family Contacts
-                </h3>
-                <div className="text-xs space-y-2 text-slate-600 dark:text-slate-400">
-                  <p>
-                    <strong>Father Name:</strong>{" "}
-                    {studentData.fatherName || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Mother Name:</strong>{" "}
-                    {studentData.motherName || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Mobile Number:</strong>{" "}
-                    {studentData.mobile || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Official Email:</strong>{" "}
-                    {studentData.email || "N/A"}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Identity Details
-                </h3>
-                <div className="text-xs space-y-2 text-slate-600 dark:text-slate-400">
-                  <p>
-                    <strong>Aadhaar Number:</strong>{" "}
-                    {studentData.aadhaarNumber || "N/A"}
-                  </p>
-                  <p>
-                    <strong>ABC ID:</strong> {studentData.abcId || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Gender:</strong> {studentData.gender || "N/A"}
-                  </p>
-                </div>
-              </div>
+          {isProfileLoading ? (
+            <div className="py-12 text-center text-xs text-slate-400">Loading student profile from database...</div>
+          ) : isProfileError || !studentProfile ? (
+            <div className="py-8 text-center text-xs text-rose-500">
+              Unable to load profile for student {selectedStudentId}.
             </div>
-          )}
-
-          {/* Academic Records Tab */}
-          {activeTab === "academic" && (
-            <div className="space-y-4">
-              <div className="w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-sm">
-                <Select
-                  options={semesterOptions}
-                  value={semFilter}
-                  onChange={(e) => setSemFilter(e.target.value)}
-                  placeholder="All Semesters"
-                  id="academic-sem-filter"
-                />
-              </div>
-
-              <Table
-                columns={marksColumns}
-                data={filteredMarks}
-                isLoading={false}
-                emptyMessage="No marks uploaded for this student"
-                id="student-search-marks"
-              />
-            </div>
-          )}
-
-          {/* Attendance Tab */}
-          {activeTab === "attendance" && (
+          ) : (
             <div className="space-y-6">
-              {/* Overall Progress */}
-              <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center gap-6">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-850 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-800">
-                  <span
-                    className={`text-lg font-bold ${
-                      attendanceSummary.percentage >= 75
-                        ? "text-emerald-500"
-                        : "text-rose-500"
-                    }`}
-                  >
-                    {attendanceSummary.percentage}%
-                  </span>
+              <StudentProfileCard
+                student={{
+                  id: studentProfile.id,
+                  hallTicketNumber: studentProfile.hallTicketNumber,
+                  name: studentProfile.name,
+                  email: studentProfile.email || "",
+                  mobile: studentProfile.phoneNumber || "",
+                  dateOfBirth: studentProfile.dateOfBirth || "",
+                  gender: (studentProfile.gender as any) || "Other",
+                  department: studentProfile.departmentName || studentProfile.departmentCode || "",
+                  section: studentProfile.sectionName || "",
+                  year: (studentProfile as any).year || 1,
+                  admissionYear: studentProfile.batchStartYear || 2024,
+                  isActive: studentProfile.enrollmentStatus !== "INACTIVE",
+                } as any}
+              />
+
+              {/* Detail Tabs */}
+              <Tabs
+                tabs={[
+                  { id: "personal", label: "Personal Information", icon: <GraduationCap className="w-4 h-4" /> },
+                  { id: "academic", label: "Academic Enrollment", icon: <Building2 className="w-4 h-4" /> },
+                  { id: "examinations", label: "Examination Records", icon: <BookOpen className="w-4 h-4" /> },
+                ]}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+              />
+
+              {activeTab === "personal" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-5 bg-slate-50 dark:bg-slate-850/50 rounded-2xl text-xs">
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Full Name</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{studentProfile.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Hall Ticket Number</span>
+                    <span className="font-mono font-bold text-primary-600">{studentProfile.hallTicketNumber}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Gender</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.gender || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Date of Birth</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.dateOfBirth || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Email Address</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.email || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Phone Number</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.phoneNumber || "N/A"}</span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    Overall Attendance
-                  </h4>
-                  <p className="text-xs text-slate-450 mt-1">
-                    Present for {attendanceSummary.present} class(es) out of{" "}
-                    {attendanceSummary.total} total sessions.
+              )}
+
+              {activeTab === "academic" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-5 bg-slate-50 dark:bg-slate-850/50 rounded-2xl text-xs">
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Department</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {studentProfile.departmentName} ({studentProfile.departmentCode})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Program</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {studentProfile.programName} ({studentProfile.programCode})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Academic Batch</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.batchName || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Section</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.sectionName || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Enrollment Status</span>
+                    <Badge variant={studentProfile.enrollmentStatus === "ACTIVE" ? "success" : "warning"}>
+                      {studentProfile.enrollmentStatus || "ACTIVE"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block uppercase text-[10px]">Joined Date</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{studentProfile.joinedDate || "N/A"}</span>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "examinations" && (
+                <div className="py-8 px-4 text-center bg-slate-50 dark:bg-slate-850/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400 space-y-2">
+                  <BookOpen className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+                  <p className="font-semibold text-slate-600 dark:text-slate-300">No academic results have been imported yet.</p>
+                  <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                    When examination results are uploaded via the Excel Import module for this student, their normalized marks, grades, and SGPA/CGPA will appear here.
                   </p>
                 </div>
-              </div>
-
-              {/* Subject Breakdown */}
-              <Table
-                columns={attendanceColumns}
-                data={attendanceSummary?.subjectWise || []}
-                isLoading={false}
-                emptyMessage="No attendance records registered"
-                id="student-search-attendance"
-              />
+              )}
             </div>
           )}
         </div>
       )}
+
+      {/* Academic Filter Controls */}
+      <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+            <Filter className="w-3.5 h-3.5" /> Filter Students
+          </span>
+          {(activeSearch || departmentId || programId || batchId || sectionId || status) && (
+            <button
+              onClick={handleClearFilters}
+              className="text-xs text-rose-500 hover:text-rose-600 font-semibold underline"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+
+        {/* Search Input Bar */}
+        <form onSubmit={handleSearchSubmit} className="flex gap-3">
+          <div className="relative flex-grow">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by Hall Ticket Number or Student Name..."
+              className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-primary-500 text-slate-800 dark:text-slate-200"
+            />
+          </div>
+          <Button type="submit" variant="primary" size="sm" className="px-5">
+            Search
+          </Button>
+        </form>
+
+        {/* Dynamic PostgreSQL Academic Selectors */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-1">
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Department</label>
+            <Select
+              options={[
+                { label: "All Departments", value: "" },
+                ...departments.map((d) => ({
+                  label: `${d.departmentCode} - ${d.departmentName}`,
+                  value: d.id,
+                })),
+              ]}
+              value={departmentId}
+              onChange={(e) => {
+                setDepartmentId(e.target.value);
+                setProgramId("");
+                setBatchId("");
+                setSectionId("");
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Program</label>
+            <Select
+              options={[
+                { label: "All Programs", value: "" },
+                ...programs.map((p) => ({
+                  label: `${p.programCode} - ${p.programName}`,
+                  value: p.id,
+                })),
+              ]}
+              value={programId}
+              onChange={(e) => {
+                setProgramId(e.target.value);
+                setBatchId("");
+                setSectionId("");
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Academic Batch</label>
+            <Select
+              options={[
+                { label: "All Batches", value: "" },
+                ...batches.map((b) => ({
+                  label: b.batchName,
+                  value: b.id,
+                })),
+              ]}
+              value={batchId}
+              onChange={(e) => {
+                setBatchId(e.target.value);
+                setSectionId("");
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Section</label>
+            <Select
+              options={[
+                { label: "All Sections", value: "" },
+                ...sections.map((s) => ({
+                  label: `Section ${s.sectionName}`,
+                  value: s.id,
+                })),
+              ]}
+              value={sectionId}
+              onChange={(e) => {
+                setSectionId(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Status</label>
+            <Select
+              options={[
+                { label: "All Statuses", value: "" },
+                { label: "Active", value: "ACTIVE" },
+                { label: "Inactive", value: "INACTIVE" },
+                { label: "Graduated", value: "GRADUATED" },
+                { label: "Suspended", value: "SUSPENDED" },
+              ]}
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Directory Table View */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            Enrolled Students Roster ({pagination.total})
+          </h3>
+          <span className="text-xs text-slate-400">
+            Page {pagination.page} of {pagination.totalPages || 1}
+          </span>
+        </div>
+
+        {isDirectoryLoading ? (
+          <div className="py-16 text-center text-xs text-slate-400">Loading students from PostgreSQL database...</div>
+        ) : isDirectoryError ? (
+          <div className="py-12 text-center text-xs text-rose-500">
+            Unable to connect to the student database. Please check your backend connection.
+          </div>
+        ) : studentsList.length === 0 ? (
+          <div className="py-16 text-center text-xs text-slate-400 space-y-3">
+            <Users className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
+            <p className="font-semibold text-slate-600 dark:text-slate-300">No students found in database.</p>
+            <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+              No matching records found. Upload a Student Master Excel spreadsheet in the Upload center to register students into PostgreSQL.
+            </p>
+          </div>
+        ) : (
+          <>
+            <Table
+              columns={studentColumns}
+              data={studentsList}
+              isLoading={false}
+              emptyMessage="No students found."
+            />
+
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="text-xs"
+                >
+                  Previous
+                </Button>
+                <span className="text-xs text-slate-500 font-semibold">
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} students
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="text-xs"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

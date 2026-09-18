@@ -13,7 +13,8 @@ export const login = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { identifier, password } = req.body;
+    const identifier = req.body.identifier || req.body.username;
+    const { password } = req.body;
     if (!identifier || !password) {
       throw ApiError.badRequest('Username/ID and password are required.');
     }

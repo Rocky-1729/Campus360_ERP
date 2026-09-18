@@ -220,3 +220,263 @@ export interface IErrorLog {
   stack?: string;
   createdAt?: string;
 }
+
+// ====================================================
+// PostgreSQL Academic Structure Interfaces
+// ====================================================
+
+export interface IDepartment {
+  id: string | number;
+  department_code: string;
+  department_name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IProgram {
+  id: string | number;
+  department_id: string | number;
+  program_code: string;
+  program_name: string;
+  degree: string;
+  duration_years: number;
+  created_at?: string;
+  updated_at?: string;
+  department_name?: string;
+  department_code?: string;
+}
+
+export interface IAcademicBatch {
+  id: string | number;
+  program_id: string | number;
+  batch_name: string;
+  start_year: number;
+  expected_completion_year: number;
+  created_at?: string;
+  updated_at?: string;
+  program_name?: string;
+  program_code?: string;
+}
+
+export interface ISection {
+  id: string | number;
+  academic_batch_id: string | number;
+  section_name: string;
+  created_at?: string;
+  updated_at?: string;
+  batch_name?: string;
+}
+
+export interface IAcademicSession {
+  id: string | number;
+  session_name: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IPgSemester {
+  id: string | number;
+  semester_number: number;
+  year_number: number;
+  semester_name: string;
+  created_at?: string;
+}
+
+// ====================================================
+// PostgreSQL Student & Enrollment Interfaces
+// ====================================================
+
+export interface IPgStudent {
+  id: string | number;
+  hall_ticket_number: string;
+  full_name: string;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IPgStudentAcademicEnrollment {
+  id: string | number;
+  student_id: string | number;
+  academic_batch_id: string | number;
+  section_id?: string | number | null;
+  enrollment_status: string;
+  joined_date?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IStudentListItem {
+  id: string;
+  hallTicketNumber: string;
+  name: string;
+  email: string | null;
+  phoneNumber: string | null;
+  gender: string | null;
+  dateOfBirth?: string | null;
+  departmentId?: string | null;
+  departmentCode?: string | null;
+  departmentName?: string | null;
+  programId?: string | null;
+  programCode?: string | null;
+  programName?: string | null;
+  batchId?: string | null;
+  batchName?: string | null;
+  sectionId?: string | null;
+  sectionName?: string | null;
+  enrollmentStatus?: string | null;
+  joinedDate?: string | null;
+}
+
+export interface IStudentProfileDetails extends IStudentListItem {
+  createdAt?: string;
+  updatedAt?: string;
+  batchStartYear?: number | null;
+  batchExpectedCompletionYear?: number | null;
+  degree?: string | null;
+  durationYears?: number | null;
+}
+
+export interface IStudentListFilters {
+  search?: string;
+  departmentId?: number | string;
+  programId?: number | string;
+  batchId?: number | string;
+  sectionId?: number | string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+// ====================================================
+// PostgreSQL Subjects & Examination Interfaces
+// ====================================================
+
+export interface IPgSubject {
+  id: string | number;
+  subject_code: string;
+  subject_name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ISubjectListItem {
+  id: string;
+  subjectCode: string;
+  subjectName: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IPgCurriculumSubject {
+  id: string | number;
+  academic_batch_id: string | number;
+  semester_id: string | number;
+  subject_id: string | number;
+  maximum_internal_marks?: number;
+  maximum_external_marks?: number;
+  maximum_total_marks?: number;
+  credits?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ICurriculumSubjectView {
+  id: string;
+  batchId: string;
+  batchName: string;
+  programId: string;
+  programCode: string;
+  programName: string;
+  semesterId: string;
+  semesterNumber: number;
+  semesterName: string;
+  subjectId: string;
+  subjectCode: string;
+  subjectName: string;
+  maximumInternalMarks: number;
+  maximumExternalMarks: number;
+  maximumTotalMarks: number;
+  credits: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IPgExamination {
+  id: string | number;
+  academic_session_id: string | number;
+  semester_id: string | number;
+  exam_type: 'REGULAR' | 'SUPPLEMENTARY';
+  exam_name: string;
+  exam_date?: string | null;
+  status: 'DRAFT' | 'COMPLETED' | 'CANCELLED';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IExaminationView {
+  id: string;
+  academicSessionId: string;
+  sessionName: string;
+  semesterId: string;
+  semesterNumber: number;
+  semesterName: string;
+  examType: 'REGULAR' | 'SUPPLEMENTARY';
+  examName: string;
+  examDate?: string | null;
+  status: 'DRAFT' | 'COMPLETED' | 'CANCELLED';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IPgExamResult {
+  id: string | number;
+  student_id: string | number;
+  subject_id: string | number;
+  examination_id: string | number;
+  internal_marks?: number | null;
+  external_marks?: number | null;
+  total_marks?: number | null;
+  grade?: string | null;
+  result_status: 'PASS' | 'FAIL' | 'ABSENT' | 'WITHHELD';
+  attempt_number: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IPgStudentSemesterResult {
+  id: string | number;
+  student_id: string | number;
+  academic_session_id: string | number;
+  semester_id: string | number;
+  examination_id: string | number;
+  sgpa?: number | null;
+  cgpa?: number | null;
+  total_credits?: number | null;
+  earned_credits?: number | null;
+  overall_result?: 'PASS' | 'FAIL' | 'PROMOTED' | 'WITHHELD' | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IPgExcelUpload {
+  id: string | number;
+  file_name: string;
+  file_hash?: string | null;
+  examination_id?: string | number | null;
+  upload_status: 'UPLOADED' | 'VALIDATING' | 'VALIDATED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  total_rows?: number;
+  successful_rows?: number;
+  failed_rows?: number;
+  error_message?: string | null;
+  uploaded_at?: string;
+}
+
+
+

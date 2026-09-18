@@ -80,8 +80,7 @@ export const getDepartmentAnalytics = async (bypassCache: boolean = false): Prom
     // Fetch marks analytics
     const marksStats = await marksRepository.getAnalytics({});
 
-    // Fetch attendance distribution
-    const studentsList = await db.all<{ hallTicketNumber: string }>('SELECT hallTicketNumber FROM students WHERE isActive = 1');
+    // Fetch attendance distribution using a single bulk query instead of per-student queries
     const attendanceDistribution = {
       'Above 90%': 0,
       '80-89%': 0,
@@ -89,15 +88,28 @@ export const getDepartmentAnalytics = async (bypassCache: boolean = false): Prom
       'Below 75%': 0,
     };
 
-    for (const s of studentsList) {
-      const summaryList = await attendanceRepository.getSubjectSummary(s.hallTicketNumber);
-      if (summaryList.length === 0) continue;
-      const totalPct = Math.round(
-        summaryList.reduce((acc, curr) => acc + curr.percentage, 0) / summaryList.length
-      );
-      if (totalPct >= 90) attendanceDistribution['Above 90%']++;
-      else if (totalPct >= 80) attendanceDistribution['80-89%']++;
-      else if (totalPct >= 75) attendanceDistribution['75-79%']++;
+    const attendanceRows = await db.all<{ hallTicketNumber: string; avgPct: number }>(`
+      SELECT 
+        a.hallTicketNumber,
+        ROUND(
+          AVG(
+            CASE 
+              WHEN a.status = 'present' THEN 100.0
+              WHEN a.status = 'late' THEN 50.0
+              ELSE 0.0
+            END
+          )
+        ) as avgPct
+      FROM attendance a
+      JOIN students s ON UPPER(a.hallTicketNumber) = UPPER(s.hallTicketNumber)
+      WHERE s.isActive = 1
+      GROUP BY a.hallTicketNumber
+    `);
+
+    for (const row of attendanceRows) {
+      if (row.avgPct >= 90) attendanceDistribution['Above 90%']++;
+      else if (row.avgPct >= 80) attendanceDistribution['80-89%']++;
+      else if (row.avgPct >= 75) attendanceDistribution['75-79%']++;
       else attendanceDistribution['Below 75%']++;
     }
 
@@ -157,7 +169,7 @@ export const getFacultyAnalytics = async (
     const hallTickets = students.map((s) => s.hallTicketNumber);
     const marksStats = await marksRepository.getAnalytics({});
 
-    // Attendance distribution for all class students
+    // Attendance distribution using a single bulk query
     const attendanceDistribution = {
       'Above 90%': 0,
       '80-89%': 0,
@@ -167,14 +179,32 @@ export const getFacultyAnalytics = async (
 
     const atRiskStudents: any[] = [];
 
+    // Build a map of hallTicketNumber -> attendance percentage via one query
+    const attRows = await db.all<{ hallTicketNumber: string; avgPct: number }>(`
+      SELECT 
+        a.hallTicketNumber,
+        ROUND(
+          AVG(
+            CASE 
+              WHEN a.status = 'present' THEN 100.0
+              WHEN a.status = 'late' THEN 50.0
+              ELSE 0.0
+            END
+          )
+        ) as avgPct
+      FROM attendance a
+      JOIN students s ON UPPER(a.hallTicketNumber) = UPPER(s.hallTicketNumber)
+      WHERE s.isActive = 1
+      GROUP BY a.hallTicketNumber
+    `);
+
+    const attMap = new Map<string, number>();
+    for (const row of attRows) {
+      attMap.set(row.hallTicketNumber.toUpperCase(), row.avgPct);
+    }
+
     for (const s of students) {
-      const summaryList = await attendanceRepository.getSubjectSummary(s.hallTicketNumber);
-      let totalPct = 100;
-      if (summaryList.length > 0) {
-        totalPct = Math.round(
-          summaryList.reduce((acc, curr) => acc + curr.percentage, 0) / summaryList.length
-        );
-      }
+      const totalPct = attMap.get(s.hallTicketNumber.toUpperCase()) ?? 100;
 
       if (totalPct >= 90) attendanceDistribution['Above 90%']++;
       else if (totalPct >= 80) attendanceDistribution['80-89%']++;

@@ -6,7 +6,12 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "ts-node-dev src/seed/adminSeed.ts"
+    "seed": "ts-node-dev src/seed/adminSeed.ts",
+    "test:db": "ts-node-dev --transpile-only src/scripts/testPostgresConnection.ts",
+    "test:academic": "ts-node-dev --transpile-only src/scripts/testAcademicApis.ts",
+    "test:students": "ts-node-dev --transpile-only src/scripts/testStudentApis.ts",
+    "test:exam": "ts-node-dev --transpile-only src/scripts/testPhase4Apis.ts",
+    "test:import": "ts-node-dev --transpile-only src/scripts/testExcelImport.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -18,6 +23,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "multer": "^1.4.5-lts.1",
+    "pg": "^8.23.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
     "xlsx": "^0.18.5",
@@ -30,6 +36,7 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.14.2",
+    "@types/pg": "^8.23.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
   }

@@ -17,7 +17,7 @@ export interface SubjectAttendance {
   present: number;
   absent: number;
   late: number;
-  percentage: number;
+  percentage: number | null;
 }
 
 export interface AttendanceSummary {
@@ -26,7 +26,7 @@ export interface AttendanceSummary {
     present: number;
     absent: number;
     late: number;
-    percentage: number;
+    percentage: number | null;
   };
   subjectWise: SubjectAttendance[];
 }

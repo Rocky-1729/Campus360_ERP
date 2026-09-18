@@ -9,6 +9,11 @@ import adminRouter from './routes/admin.routes';
 import facultyRouter from './routes/faculty.routes';
 import studentRouter from './routes/student.routes';
 import notificationRouter from './routes/notification.routes';
+import academicStructureRouter from './routes/academicStructure.routes';
+import studentDirectoryRouter from './routes/studentDirectory.routes';
+import pgSubjectExamRouter from './routes/pgSubjectExam.routes';
+import excelUploadRouter from './routes/excelUpload.routes';
+import pgAnalyticsRouter from './routes/pgAnalytics.routes';
 
 const app = express();
 
@@ -22,6 +27,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Mounting API routes
+app.use('/api', academicStructureRouter);
+app.use('/api', pgSubjectExamRouter);
+app.use('/api/academic', academicStructureRouter);
+app.use('/api/academic', pgSubjectExamRouter);
+app.use('/api/students', studentDirectoryRouter);
+app.use('/api/analytics', pgAnalyticsRouter);
+app.use('/api/excel-upload', excelUploadRouter);
+app.use('/api/excel', excelUploadRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/faculty', facultyRouter);

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { facultyApi } from "../../api/faculty.api";
+import { studentsService } from "../../services/students.service";
 import { Table } from "../../components/ui/Table";
 import type { Column } from "../../components/ui/Table";
 import { Input } from "../../components/ui/Input";
@@ -13,11 +13,13 @@ export const StudentSearch: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Fetch list of assigned students
+  // Fetch list of students from real PostgreSQL backend
   const { data: response, isLoading } = useQuery({
-    queryKey: ["assignedStudentsList"],
-    queryFn: () => facultyApi.getStudents(),
+    queryKey: ["assignedStudentsList", searchTerm],
+    queryFn: () => studentsService.getStudents({ search: searchTerm.trim() || undefined, limit: 50 }),
   });
+
+  const allStudents = response?.students || [];
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,45 +29,26 @@ export const StudentSearch: React.FC = () => {
       return;
     }
 
-    // 1. Try local match first
-    const allStudents = Array.isArray(response?.data?.data)
-      ? response.data.data
-      : [];
     const match = allStudents.find(
-      (s: any) => s.hallTicketNumber.toUpperCase() === term,
+      (s: any) => (s.hallTicketNumber || '').toUpperCase() === term,
     );
     if (match) {
       navigate(`/faculty/students/${term}`);
       return;
     }
 
-    // 2. Fallback to direct database search
     try {
-      const searchRes = await facultyApi.searchStudent(term);
-      if (searchRes?.data) {
+      const directStudent = await studentsService.getStudentById(term);
+      if (directStudent?.hallTicketNumber) {
         navigate(`/faculty/students/${term}`);
         return;
       }
-    } catch (error) {
+    } catch {
       // Fall through to error toast
     }
 
     toast.error(`No student with hall ticket "${term}" found in roster.`);
   };
-
-  const allStudents = Array.isArray(response?.data?.data)
-    ? response.data.data
-    : [];
-  const students = allStudents.filter((s: any) => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return true;
-    return (
-      (s.name || "").toLowerCase().includes(term) ||
-      (s.hallTicketNumber || "").toLowerCase().includes(term) ||
-      (s.section || "").toLowerCase().includes(term) ||
-      (s.year || "").toString().includes(term)
-    );
-  });
 
   const columns: Column<any>[] = [
     {
@@ -75,9 +58,9 @@ export const StudentSearch: React.FC = () => {
       sortKey: "hallTicketNumber",
     },
     { header: "Name", accessor: "name", sortable: true, sortKey: "name" },
-    { header: "Section", accessor: "section" },
-    { header: "Year", accessor: "year" },
-    { header: "Email", accessor: "email" },
+    { header: "Section", accessor: (row) => row.sectionName ? `Sec ${row.sectionName}` : "N/A" },
+    { header: "Batch", accessor: (row) => row.batchName || "N/A" },
+    { header: "Email", accessor: (row) => row.email || "N/A" },
     {
       header: "Actions",
       accessor: (row) => (
@@ -130,7 +113,7 @@ export const StudentSearch: React.FC = () => {
         </h3>
         <Table
           columns={columns}
-          data={students}
+          data={allStudents}
           isLoading={isLoading}
           id="roster-table"
         />

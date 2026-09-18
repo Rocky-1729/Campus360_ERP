@@ -1,12 +1,17 @@
 import app from './app';
-import { connectDB } from './config/database';
+import { connectDB, query } from './config/database';
 import { env } from './config/environment';
 import { logger } from './utils/logger';
 
 const startServer = async () => {
   try {
-    // Connect to database
+    // Connect to database pool
     await connectDB();
+
+    // Run a safe test query to verify connectivity
+    const testResult = await query('SELECT current_database(), current_user, version()');
+    const dbName = testResult.rows[0]?.current_database;
+    logger.info(`PostgreSQL connected successfully to database "${dbName}".`);
 
     // Start Express server
     const port = env.PORT || 5000;

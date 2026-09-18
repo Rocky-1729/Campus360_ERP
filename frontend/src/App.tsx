@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
+import { useAuthStore } from "./store/authStore";
 
 // Layouts
 import { AuthLayout } from "./components/layout/AuthLayout";
@@ -53,6 +55,10 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  useEffect(() => {
+    useAuthStore.getState().hydrate();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

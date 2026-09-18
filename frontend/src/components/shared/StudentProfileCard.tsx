@@ -9,12 +9,18 @@ interface StudentProfileCardProps {
 export const StudentProfileCard: React.FC<StudentProfileCardProps> = ({
   student,
 }) => {
+  const displayName = student.name || (student as any).fullName || 'Student';
+  const initials = (displayName || 'ST').slice(0, 2).toUpperCase();
+  const departmentName = student.department || (student as any).departmentName || (student as any).departmentCode || 'Academic';
+  const sectionName = student.section || (student as any).sectionName || 'N/A';
+  const batchDisplay = (student as any).batchName || (student.year ? `Year ${student.year}` : '');
+
   return (
     <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm text-left">
       <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
         {/* Profile Avatar */}
         <div className="w-24 h-24 rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold text-3xl border border-primary-500/20 shrink-0">
-          {student.name.slice(0, 2).toUpperCase()}
+          {initials}
         </div>
 
         {/* Profile Details Grid */}
@@ -22,11 +28,10 @@ export const StudentProfileCard: React.FC<StudentProfileCardProps> = ({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="text-center md:text-left">
               <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-                {student.name}
+                {displayName}
               </h2>
               <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
-                {student.department} Department • Section {student.section} •
-                Year {student.year}
+                {departmentName} Department • Section {sectionName} {batchDisplay ? `• ${batchDisplay}` : ''}
               </p>
             </div>
             <div className="flex justify-center">
@@ -57,7 +62,7 @@ export const StudentProfileCard: React.FC<StudentProfileCardProps> = ({
                   Phone
                 </p>
                 <p className="font-semibold text-slate-800 dark:text-slate-250">
-                  {student.mobile || "N/A"}
+                  {student.mobile || (student as any).phoneNumber || "N/A"}
                 </p>
               </div>
             </div>
@@ -73,7 +78,7 @@ export const StudentProfileCard: React.FC<StudentProfileCardProps> = ({
                     if (!student.dateOfBirth) return "N/A";
 
                     // Try parsing DD/MM/YYYY format first (common from Excel sheets)
-                    const parts = student.dateOfBirth.split(/[\/\-]/);
+                    const parts = student.dateOfBirth.split(/[/-]/);
                     if (parts.length === 3) {
                       const day = parseInt(parts[0], 10);
                       const month = parseInt(parts[1], 10) - 1; // 0-indexed month

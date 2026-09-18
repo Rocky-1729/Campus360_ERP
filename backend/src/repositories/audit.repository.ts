@@ -1,4 +1,4 @@
-import * as db from '../config/database';
+import { getSqliteDB } from '../config/sqliteDatabase';
 import { IAuditLog } from '../interfaces/db.interface';
 
 export const auditRepository = {
@@ -11,33 +11,48 @@ export const auditRepository = {
     recordId?: number;
     ipAddress?: string;
   }): Promise<number> => {
-    const res = await db.run(
-      `INSERT INTO audit_logs (userId, username, role, action, tableName, recordId, ipAddress)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        logEntry.userId,
-        logEntry.username,
-        logEntry.role,
-        logEntry.action,
-        logEntry.tableName,
-        logEntry.recordId || null,
-        logEntry.ipAddress || '',
-      ]
-    );
-    return res.lastID!;
+    try {
+      const sdb = await getSqliteDB();
+      const res = await sdb.run(
+        `INSERT INTO audit_logs (userId, username, role, action, tableName, recordId, ipAddress)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          logEntry.userId,
+          logEntry.username,
+          logEntry.role,
+          logEntry.action,
+          logEntry.tableName,
+          logEntry.recordId || null,
+          logEntry.ipAddress || '',
+        ]
+      );
+      return res.lastID ?? 0;
+    } catch {
+      return 0;
+    }
   },
 
   findRecent: async (limit: number = 20): Promise<IAuditLog[]> => {
-    return db.all<IAuditLog>(
-      'SELECT * FROM audit_logs ORDER BY createdAt DESC LIMIT ?',
-      [limit]
-    );
+    try {
+      const sdb = await getSqliteDB();
+      return (await sdb.all<any>(
+        'SELECT * FROM audit_logs ORDER BY createdAt DESC LIMIT ?',
+        [limit]
+      )) || [];
+    } catch {
+      return [];
+    }
   },
 
   findByUser: async (userId: number): Promise<IAuditLog[]> => {
-    return db.all<IAuditLog>(
-      'SELECT * FROM audit_logs WHERE userId = ? ORDER BY createdAt DESC',
-      [userId]
-    );
+    try {
+      const sdb = await getSqliteDB();
+      return (await sdb.all<any>(
+        'SELECT * FROM audit_logs WHERE userId = ? ORDER BY createdAt DESC',
+        [userId]
+      )) || [];
+    } catch {
+      return [];
+    }
   },
 };

@@ -1,20 +1,115 @@
 import * as db from '../config/database';
+import { getSqliteDB } from '../config/sqliteDatabase';
 import { IStudent } from '../interfaces/db.interface';
 
 export const studentRepository = {
   findById: async (id: number): Promise<IStudent | undefined> => {
-    return db.get<IStudent>('SELECT * FROM students WHERE id = ? AND isActive = 1', [id]);
+    try {
+      const pgRes = await db.query(`
+        SELECT 
+          s.id, 
+          s.hall_ticket_number AS "hallTicketNumber", 
+          s.full_name AS "name", 
+          s.email, 
+          s.phone_number AS "mobile", 
+          s.gender,
+          d.department_code AS "department",
+          sec.section_name AS "section",
+          1 AS "isActive"
+        FROM students s
+        LEFT JOIN student_academic_enrollments sae ON sae.student_id = s.id
+        LEFT JOIN academic_batches b ON sae.academic_batch_id = b.id
+        LEFT JOIN programs p ON b.program_id = p.id
+        LEFT JOIN departments d ON p.department_id = d.id
+        LEFT JOIN sections sec ON sae.section_id = sec.id
+        WHERE s.id = $1
+        LIMIT 1;
+      `, [id]);
+      if (pgRes.rows.length > 0) {
+        return pgRes.rows[0] as IStudent;
+      }
+    } catch {
+      // Fallback
+    }
+    const sdb = await getSqliteDB();
+    return sdb.get<IStudent>('SELECT * FROM students WHERE id = ? AND isActive = 1', [id]);
   },
 
   findByHallTicket: async (hallTicketNumber: string): Promise<IStudent | undefined> => {
-    return db.get<IStudent>(
-      'SELECT * FROM students WHERE UPPER(hallTicketNumber) = ? AND isActive = 1',
-      [hallTicketNumber.toUpperCase().trim()]
-    );
+    const ht = hallTicketNumber.toUpperCase().trim();
+    try {
+      const pgRes = await db.query(`
+        SELECT 
+          s.id, 
+          s.hall_ticket_number AS "hallTicketNumber", 
+          s.full_name AS "name", 
+          s.email, 
+          s.phone_number AS "mobile", 
+          s.gender,
+          d.department_code AS "department",
+          sec.section_name AS "section",
+          1 AS "isActive"
+        FROM students s
+        LEFT JOIN student_academic_enrollments sae ON sae.student_id = s.id
+        LEFT JOIN academic_batches b ON sae.academic_batch_id = b.id
+        LEFT JOIN programs p ON b.program_id = p.id
+        LEFT JOIN departments d ON p.department_id = d.id
+        LEFT JOIN sections sec ON sae.section_id = sec.id
+        WHERE UPPER(s.hall_ticket_number) = $1
+        LIMIT 1;
+      `, [ht]);
+      if (pgRes.rows.length > 0) {
+        return pgRes.rows[0] as IStudent;
+      }
+    } catch {
+      // Fallback
+    }
+    try {
+      const sdb = await getSqliteDB();
+      return sdb.get<IStudent>(
+        'SELECT * FROM students WHERE UPPER(hallTicketNumber) = ? AND isActive = 1',
+        [ht]
+      );
+    } catch {
+      return undefined;
+    }
   },
 
   findByUserId: async (userId: number): Promise<IStudent | undefined> => {
-    return db.get<IStudent>('SELECT * FROM students WHERE userId = ? AND isActive = 1', [userId]);
+    try {
+      const pgRes = await db.query(`
+        SELECT 
+          s.id, 
+          s.hall_ticket_number AS "hallTicketNumber", 
+          s.full_name AS "name", 
+          s.email, 
+          s.phone_number AS "mobile", 
+          s.gender,
+          d.department_code AS "department",
+          sec.section_name AS "section",
+          1 AS "isActive"
+        FROM users u
+        JOIN students s ON (u.student_id = s.id OR UPPER(u.username) = UPPER(s.hall_ticket_number))
+        LEFT JOIN student_academic_enrollments sae ON sae.student_id = s.id
+        LEFT JOIN academic_batches b ON sae.academic_batch_id = b.id
+        LEFT JOIN programs p ON b.program_id = p.id
+        LEFT JOIN departments d ON p.department_id = d.id
+        LEFT JOIN sections sec ON sae.section_id = sec.id
+        WHERE u.id = $1
+        LIMIT 1;
+      `, [userId]);
+      if (pgRes.rows.length > 0) {
+        return pgRes.rows[0] as IStudent;
+      }
+    } catch {
+      // Fallback
+    }
+    try {
+      const sdb = await getSqliteDB();
+      return sdb.get<IStudent>('SELECT * FROM students WHERE userId = ? AND isActive = 1', [userId]);
+    } catch {
+      return undefined;
+    }
   },
 
   create: async (student: IStudent): Promise<number> => {
@@ -150,59 +245,72 @@ export const studentRepository = {
     const ht = hallTicketNumber.toUpperCase().trim();
 
     // 1. Admission Date
-    const student = await db.get<IStudent>('SELECT createdAt FROM students WHERE UPPER(hallTicketNumber) = ?', [ht]);
-    if (student) {
-      timeline.push({
-        date: student.createdAt || new Date().toISOString(),
-        type: 'admission',
-        title: 'Joined Department',
-        description: `Student profile officially registered in the CSE Department database.`,
-      });
+    try {
+      const pgRes = await db.query<{ created_at: string }>(
+        'SELECT created_at FROM students WHERE UPPER(hall_ticket_number) = $1 LIMIT 1',
+        [ht]
+      );
+      if (pgRes.rows.length > 0) {
+        timeline.push({
+          date: pgRes.rows[0].created_at || new Date().toISOString(),
+          type: 'admission',
+          title: 'Joined Department',
+          description: 'Student profile officially registered in the academic database.',
+        });
+      }
+    } catch {
+      // safe fallback
     }
 
-    // 2. Marks Upload history
-    const marksList = await db.all<any>(
-      'SELECT DISTINCT semester, academicYear, createdAt FROM marks WHERE UPPER(hallTicketNumber) = ? ORDER BY createdAt ASC',
-      [ht]
-    );
-    marksList.forEach((m) => {
-      timeline.push({
-        date: m.createdAt,
-        type: 'academic',
-        title: `Semester ${m.semester} Results Uploaded`,
-        description: `Official marks sheet for Semester ${m.semester} (A.Y. ${m.academicYear}) uploaded by HOD.`,
-      });
-    });
+    try {
+      const sdb = await getSqliteDB();
 
-    // 3. Certificates uploaded
-    const certs = await db.all<any>(
-      'SELECT title, type, status, createdAt FROM certificates WHERE UPPER(hallTicketNumber) = ? ORDER BY createdAt ASC',
-      [ht]
-    );
-    certs.forEach((c) => {
-      timeline.push({
-        date: c.createdAt,
-        type: 'certificate',
-        title: `Certificate Uploaded: ${c.title}`,
-        description: `Submitted proof for ${c.type}. Current status: ${c.status}.`,
-        status: c.status,
+      // 2. Marks Upload history
+      const marksList = await sdb.all<any>(
+        'SELECT DISTINCT semester, academicYear, createdAt FROM marks WHERE UPPER(hallTicketNumber) = ? ORDER BY createdAt ASC',
+        [ht]
+      );
+      marksList.forEach((m: any) => {
+        timeline.push({
+          date: m.createdAt,
+          type: 'academic',
+          title: `Semester ${m.semester} Results Uploaded`,
+          description: `Official marks sheet for Semester ${m.semester} (A.Y. ${m.academicYear}) uploaded.`,
+        });
       });
-    });
 
-    // 4. Achievements uploaded
-    const achs = await db.all<any>(
-      'SELECT title, category, status, createdAt FROM achievements WHERE UPPER(hallTicketNumber) = ? ORDER BY createdAt ASC',
-      [ht]
-    );
-    achs.forEach((a) => {
-      timeline.push({
-        date: a.createdAt,
-        type: 'achievement',
-        title: `Achievement Logged: ${a.title}`,
-        description: `Logged award win in ${a.category}. Verification state: ${a.status}.`,
-        status: a.status,
+      // 3. Certificates uploaded
+      const certs = await sdb.all<any>(
+        'SELECT title, type, status, createdAt FROM certificates WHERE UPPER(hallTicketNumber) = ? ORDER BY createdAt ASC',
+        [ht]
+      );
+      certs.forEach((c: any) => {
+        timeline.push({
+          date: c.createdAt,
+          type: 'certificate',
+          title: `Certificate Uploaded: ${c.title}`,
+          description: `Submitted proof for ${c.type}. Current status: ${c.status}.`,
+          status: c.status,
+        });
       });
-    });
+
+      // 4. Achievements uploaded
+      const achs = await sdb.all<any>(
+        'SELECT title, category, status, createdAt FROM achievements WHERE UPPER(hallTicketNumber) = ? ORDER BY createdAt ASC',
+        [ht]
+      );
+      achs.forEach((a: any) => {
+        timeline.push({
+          date: a.createdAt,
+          type: 'achievement',
+          title: `Achievement Logged: ${a.title}`,
+          description: `Logged award win in ${a.category}. Verification state: ${a.status}.`,
+          status: a.status,
+        });
+      });
+    } catch {
+      // Legacy SQLite tables optional
+    }
 
     // Sort timeline chronologically (newest first)
     timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

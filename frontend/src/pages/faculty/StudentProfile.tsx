@@ -8,7 +8,9 @@ import {
   Clock,
   Activity,
 } from "lucide-react";
-import { facultyApi } from "../../api/faculty.api";
+import { studentsService } from "../../services/students.service";
+import { resultsService } from "../../services/results.service";
+import { academicService } from "../../services/academic.service";
 import { LoadingScreen } from "../../components/shared/LoadingScreen";
 import { Button } from "../../components/ui/Button";
 import { Tabs } from "../../components/ui/Tabs";
@@ -25,27 +27,37 @@ export const StudentProfile: React.FC = () => {
   const [semFilter, setSemFilter] = useState<string>("");
 
   const {
-    data: response,
+    data: studentData,
     isLoading,
     isError,
   } = useQuery({
     queryKey: ["assignedStudentProfile", hallTicket],
-    queryFn: () => facultyApi.getStudentProfile(hallTicket!),
+    queryFn: () => studentsService.getStudentById(hallTicket!),
     enabled: !!hallTicket,
     retry: false,
   });
 
+  const { data: resultsData, isLoading: isResultsLoading } = useQuery({
+    queryKey: ["studentResultsHistory", hallTicket],
+    queryFn: () => resultsService.getStudentResults(hallTicket!),
+    enabled: !!hallTicket,
+  });
+
+  const { data: dbSemesters = [] } = useQuery({
+    queryKey: ["academicSemestersList"],
+    queryFn: () => academicService.getSemesters(),
+  });
+
   if (isLoading) return <LoadingScreen />;
 
-  if (isError || !response?.data) {
+  if (isError || !studentData) {
     return (
       <div className="text-center py-12 space-y-4">
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
           Error Loading Student
         </h3>
         <p className="text-sm text-slate-500">
-          You may not be authorized to view this student profile or student
-          doesn't exist.
+          Student with hall ticket "{hallTicket}" was not found in the database.
         </p>
         <Button variant="primary" onClick={() => navigate("/faculty/students")}>
           Back to list
@@ -54,8 +66,13 @@ export const StudentProfile: React.FC = () => {
     );
   }
 
-  const profile: any = response.data;
-  const student = profile?.student ?? profile ?? {};
+  const student: any = studentData;
+  const profile: any = {
+    ...student,
+    student,
+    marks: student?.marks || [],
+    timeline: student?.timeline || [],
+  };
   const attendanceSummary = student?.attendanceSummary ?? {
     percentage: 0,
     present: 0,
@@ -89,18 +106,22 @@ export const StudentProfile: React.FC = () => {
   const marksColumns: Column<any>[] = [
     { header: "Subject Code", accessor: "subjectCode" },
     { header: "Subject Name", accessor: "subjectName" },
-    { header: "Internal", accessor: "internalMarks" },
-    { header: "External", accessor: "externalMarks" },
-    { header: "Total", accessor: "totalMarks" },
-    { header: "Grade", accessor: "grade" },
-    { header: "Credits", accessor: "credits" },
+    { header: "Internal", accessor: (r) => (r.internalMarks != null ? r.internalMarks : "—") },
+    { header: "External", accessor: (r) => (r.externalMarks != null ? r.externalMarks : "—") },
+    { header: "Total", accessor: (r) => (r.totalMarks != null ? r.totalMarks : "—") },
+    { header: "Grade", accessor: (r) => r.grade || "—" },
+    { header: "Credits", accessor: (r) => (r.credits != null ? r.credits : "—") },
     {
       header: "Result",
-      accessor: (row) => (
-        <Badge variant={row.result === "Pass" ? "success" : "danger"}>
-          {row.result}
-        </Badge>
-      ),
+      accessor: (row) => {
+        const res = row.resultStatus || row.result || "N/A";
+        const isPass = res.toUpperCase() === "PASS";
+        return (
+          <Badge variant={isPass ? "success" : "danger"}>
+            {res}
+          </Badge>
+        );
+      },
     },
   ];
 
@@ -134,19 +155,21 @@ export const StudentProfile: React.FC = () => {
 
   const semesterOptions = [
     { label: "All Semesters", value: "" },
-    { label: "1-1", value: "1-1" },
-    { label: "1-2", value: "1-2" },
-    { label: "2-1", value: "2-1" },
-    { label: "2-2", value: "2-2" },
-    { label: "3-1", value: "3-1" },
-    { label: "3-2", value: "3-2" },
-    { label: "4-1", value: "4-1" },
-    { label: "4-2", value: "4-2" },
+    ...dbSemesters.map((s: any) => ({
+      label: s.semesterName || `Semester ${s.semesterNumber}`,
+      value: String(s.id),
+    })),
   ];
 
-  const filteredMarks = profile.marks
-    ? profile.marks.filter((m: any) => !semFilter || m.semester === semFilter)
-    : [];
+  const studentResults = resultsData?.results || [];
+  const filteredExamResults = semFilter
+    ? studentResults.filter(
+        (r) =>
+          String(r.semester.id) === semFilter ||
+          r.semester.semesterName === semFilter ||
+          String(r.semester.semesterNumber) === semFilter
+      )
+    : studentResults;
 
   return (
     <div className="space-y-6 text-left">
@@ -201,10 +224,10 @@ export const StudentProfile: React.FC = () => {
                 {student.aadhaarNumber || "N/A"}
               </p>
               <p>
-                <strong>ABC ID:</strong> {profile.student.abcId || "N/A"}
+                <strong>ABC ID:</strong> {profile.student?.abcId || student.abcId || "N/A"}
               </p>
               <p>
-                <strong>Gender:</strong> {profile.student.gender || "N/A"}
+                <strong>Gender:</strong> {profile.student?.gender || student.gender || "N/A"}
               </p>
             </div>
           </div>
@@ -212,8 +235,8 @@ export const StudentProfile: React.FC = () => {
       )}
 
       {activeTab === "academic" && (
-        <div className="space-y-4">
-          <div className="w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-sm">
+        <div className="space-y-6">
+          <div className="w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-sm">
             <Select
               options={semesterOptions}
               value={semFilter}
@@ -223,13 +246,85 @@ export const StudentProfile: React.FC = () => {
             />
           </div>
 
-          <Table
-            columns={marksColumns}
-            data={filteredMarks}
-            isLoading={false}
-            emptyMessage="No marks uploaded for this student"
-            id="student-search-marks"
-          />
+          {isResultsLoading ? (
+            <div className="p-8 text-center text-xs text-slate-400">Loading academic results...</div>
+          ) : filteredExamResults.length === 0 ? (
+            <div className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-2">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                No Academic Examination Results Found
+              </p>
+              <p className="text-xs text-slate-400">
+                No examination results have been imported into PostgreSQL for this student.
+              </p>
+            </div>
+          ) : (
+            filteredExamResults.map((examResult) => (
+              <div
+                key={examResult.examination.id}
+                className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      {examResult.examination.examName}
+                      <Badge
+                        variant={
+                          examResult.examination.examType === "REGULAR" ? "info" : "warning"
+                        }
+                      >
+                        {examResult.examination.examType}
+                      </Badge>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {examResult.semester.semesterName} • {examResult.academicSession.sessionName}
+                    </p>
+                  </div>
+
+                  {examResult.summary && (
+                    <div className="flex items-center gap-4 text-xs">
+                      {examResult.summary.sgpa !== null && (
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">SGPA</span>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">
+                            {examResult.summary.sgpa}
+                          </p>
+                        </div>
+                      )}
+                      {examResult.summary.cgpa !== null && (
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">CGPA</span>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">
+                            {examResult.summary.cgpa}
+                          </p>
+                        </div>
+                      )}
+                      {examResult.summary.overallResult && (
+                        <Badge
+                          variant={
+                            examResult.summary.overallResult === "PASS"
+                              ? "success"
+                              : examResult.summary.overallResult === "FAIL"
+                              ? "danger"
+                              : "warning"
+                          }
+                        >
+                          {examResult.summary.overallResult}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Table
+                  columns={marksColumns}
+                  data={examResult.subjects}
+                  isLoading={false}
+                  emptyMessage="No subject marks recorded for this examination."
+                  id={`student-marks-exam-${examResult.examination.id}`}
+                />
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -313,7 +408,7 @@ export const StudentProfile: React.FC = () => {
                             return isNaN(d.getTime())
                               ? event.date
                               : d.toLocaleDateString();
-                          } catch (e) {
+                          } catch {
                             return event.date;
                           }
                         })()}

@@ -18,6 +18,15 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().default('http://localhost:5173'),
   DEFAULT_ADMIN_EMAIL: z.string().email('DEFAULT_ADMIN_EMAIL must be a valid email'),
   DEFAULT_ADMIN_PASSWORD: z.string().min(6, 'DEFAULT_ADMIN_PASSWORD must be at least 6 characters'),
+  // PostgreSQL Database Configuration
+  DATABASE_URL: z.string().optional(),
+  PGHOST: z.string().optional(),
+  PGPORT: z.string().optional().default('5432'),
+  PGUSER: z.string().optional(),
+  PGPASSWORD: z.string().optional(),
+  PGDATABASE: z.string().optional(),
+  PG_MAX_POOL: z.string().optional().default('20'),
+  PG_IDLE_TIMEOUT_MS: z.string().optional().default('30000'),
 });
 
 /** Inferred TypeScript type from the Zod env schema */

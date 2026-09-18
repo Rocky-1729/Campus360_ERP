@@ -80,7 +80,7 @@ export const SystemBackup: React.FC = () => {
       link.remove();
       toast.success("SQLite Database backup file downloaded successfully!");
       fetchLogs(); // refresh audit logs
-    } catch (error) {
+    } catch {
       toast.error("Failed to generate database backup.");
     } finally {
       setIsBackingUp(false);

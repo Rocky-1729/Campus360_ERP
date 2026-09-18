@@ -1,68 +1,113 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { adminApi } from "../../api/admin.api";
+import {
+  Users,
+  GraduationCap,
+  Award,
+  AlertCircle,
+  TrendingUp,
+  Building2,
+} from "lucide-react";
+import { analyticsService } from "../../services/analytics.service";
+import { academicService } from "../../services/academic.service";
 import { BarChartCard } from "../../components/charts/BarChartCard";
 import { PieChartCard } from "../../components/charts/PieChartCard";
 import { Select } from "../../components/ui/Select";
 import { LoadingScreen } from "../../components/shared/LoadingScreen";
 
 export const AdminAnalytics: React.FC = () => {
+  const [departmentFilter, setDepartmentFilter] = useState<string>("");
   const [semesterFilter, setSemesterFilter] = useState<string>("");
-  const [yearFilter, setYearFilter] = useState<string>("2025-26");
+  const [sessionFilter, setSessionFilter] = useState<string>("");
 
-  // Fetch department analytics
-  const { data: response, isLoading } = useQuery({
-    queryKey: ["adminAnalytics", semesterFilter, yearFilter],
+  // Load real departments from PostgreSQL
+  const { data: departments = [] } = useQuery({
+    queryKey: ["analyticsDepartmentsList"],
+    queryFn: () => academicService.getDepartments(),
+  });
+
+  // Load real semesters from PostgreSQL
+  const { data: semesters = [] } = useQuery({
+    queryKey: ["analyticsSemestersList"],
+    queryFn: () => academicService.getSemesters(),
+  });
+
+  // Load real academic sessions from PostgreSQL
+  const { data: sessions = [] } = useQuery({
+    queryKey: ["analyticsSessionsList"],
+    queryFn: () => academicService.getSessions(),
+  });
+
+  // Fetch real PostgreSQL overview analytics with dynamic filters
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ["adminAnalyticsOverview", departmentFilter, semesterFilter, sessionFilter],
     queryFn: () =>
-      adminApi.getAnalytics({
-        semester: semesterFilter,
-        academicYear: yearFilter,
+      analyticsService.getOverview({
+        departmentId: departmentFilter || undefined,
+        semesterId: semesterFilter || undefined,
+        academicSessionId: sessionFilter || undefined,
       }),
+  });
+
+  // Fetch department-level breakdown
+  const { data: deptData = [] } = useQuery({
+    queryKey: ["adminAnalyticsDeptBreakdown"],
+    queryFn: () => analyticsService.getDepartments(),
   });
 
   if (isLoading) return <LoadingScreen />;
 
-  const analytics: any = response?.data || {
-    totalStudents: 0,
-    totalFaculty: 0,
-    totalSubjects: 0,
-    totalCertificates: 0,
-    totalAchievements: 0,
-    pendingCertificates: 0,
-    pendingAchievements: 0,
-    cgpaDistribution: {},
-    attendanceDistribution: {},
-  };
+  const totalStudents = analytics?.totalStudents ?? 0;
+  const studentsWithResults = analytics?.studentsWithResults ?? 0;
+  const passPercentage = analytics?.passPercentage;
+  const averageSGPA = analytics?.averageSGPA;
+  const averageCGPA = analytics?.averageCGPA;
 
+  // Real CGPA Distribution data for BarChart
   const cgpaSource = analytics?.cgpaDistribution ?? {};
-  const attendanceSource = analytics?.attendanceDistribution ?? {};
-
   const cgpaData = Object.keys(cgpaSource).map((key) => ({
     range: key,
     count: Number(cgpaSource[key] ?? 0),
   }));
 
-  const attendanceData = Object.keys(attendanceSource).map((key) => ({
-    name: key,
-    value: Number(attendanceSource[key] ?? 0),
-  }));
+  // Real Backlog Distribution data for PieChart
+  const backlogSource = analytics?.backlogDistribution ?? {
+    zeroBacklogs: 0,
+    oneBacklog: 0,
+    twoBacklogs: 0,
+    threeOrMoreBacklogs: 0,
+    totalBacklogStudents: 0,
+  };
+  const backlogData = [
+    { name: "0 Backlogs (Clear)", value: backlogSource.zeroBacklogs },
+    { name: "1 Backlog", value: backlogSource.oneBacklog },
+    { name: "2 Backlogs", value: backlogSource.twoBacklogs },
+    { name: "3+ Backlogs", value: backlogSource.threeOrMoreBacklogs },
+  ].filter((item) => item.value > 0 || studentsWithResults > 0);
+
+  // Filter dropdown options
+  const departmentOptions = [
+    { label: "All Departments", value: "" },
+    ...departments.map((d: any) => ({
+      label: `${d.departmentCode} - ${d.departmentName}`,
+      value: String(d.id),
+    })),
+  ];
 
   const semesterOptions = [
     { label: "All Semesters", value: "" },
-    { label: "1-1", value: "1-1" },
-    { label: "1-2", value: "1-2" },
-    { label: "2-1", value: "2-1" },
-    { label: "2-2", value: "2-2" },
-    { label: "3-1", value: "3-1" },
-    { label: "3-2", value: "3-2" },
-    { label: "4-1", value: "4-1" },
-    { label: "4-2", value: "4-2" },
+    ...semesters.map((s: any) => ({
+      label: s.semesterName || `Semester ${s.semesterNumber}`,
+      value: String(s.id),
+    })),
   ];
 
-  const yearOptions = [
-    { label: "2024-25", value: "2024-25" },
-    { label: "2025-26", value: "2025-26" },
-    { label: "2026-27", value: "2026-27" },
+  const sessionOptions = [
+    { label: "All Academic Sessions", value: "" },
+    ...sessions.map((sess: any) => ({
+      label: sess.sessionName,
+      value: String(sess.id),
+    })),
   ];
 
   return (
@@ -70,69 +115,91 @@ export const AdminAnalytics: React.FC = () => {
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-            Department Analytics
+            Institutional Analytics
           </h2>
           <p className="text-xs text-slate-400">
-            View department-wide statistics, grade distributions, and
-            performance graphs.
+            PostgreSQL-computed performance indicators, active backlog tracking, and CGPA distributions.
           </p>
         </div>
       </div>
 
       {/* Filter controls */}
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+        <div className="w-full sm:w-56">
+          <Select
+            options={departmentOptions}
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            label="Department"
+            id="analytics-dept-filter"
+          />
+        </div>
         <div className="w-full sm:w-48">
           <Select
             options={semesterOptions}
             value={semesterFilter}
             onChange={(e) => setSemesterFilter(e.target.value)}
-            label="Semester Filter"
+            label="Semester"
             id="analytics-sem-filter"
           />
         </div>
-        <div className="w-full sm:w-48">
+        <div className="w-full sm:w-56">
           <Select
-            options={yearOptions}
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
-            label="Academic Year"
-            id="analytics-year-filter"
+            options={sessionOptions}
+            value={sessionFilter}
+            onChange={(e) => setSessionFilter(e.target.value)}
+            label="Academic Session"
+            id="analytics-session-filter"
           />
         </div>
       </div>
 
+      {/* Zero Results Notification Banner */}
+      {studentsWithResults === 0 && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <div>
+            <span className="font-bold">No Examination Results Imported: </span>
+            {analytics?.statusMessage || "Upload examination spreadsheets via the Marks Upload portal to view live grade curves and pass rates."}
+          </div>
+        </div>
+      )}
+
       {/* Summary Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
-            Total Registered Students
+        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          <p className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-primary-500" /> Total Students
           </p>
           <p className="text-2xl font-bold text-slate-850 dark:text-slate-200 mt-1">
-            {analytics.totalStudents}
+            {totalStudents}
           </p>
         </div>
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
-            Total Faculty Staff
+
+        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          <p className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
+            <GraduationCap className="w-3.5 h-3.5 text-emerald-500" /> Students With Results
           </p>
           <p className="text-2xl font-bold text-slate-850 dark:text-slate-200 mt-1">
-            {analytics.totalFaculty}
+            {studentsWithResults}
           </p>
         </div>
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
-            Approved Certificates
+
+        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          <p className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5 text-sky-500" /> Overall Pass Rate
           </p>
           <p className="text-2xl font-bold text-emerald-500 mt-1">
-            {analytics.totalCertificates - analytics.pendingCertificates}
+            {passPercentage !== null ? `${passPercentage}%` : "N/A"}
           </p>
         </div>
-        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
-            Approved Achievements
+
+        <div className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+          <p className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-purple-500" /> Average SGPA / CGPA
           </p>
-          <p className="text-2xl font-bold text-emerald-500 mt-1">
-            {analytics.totalAchievements - analytics.pendingAchievements}
+          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+            {averageSGPA !== null ? `${averageSGPA} / 10` : (averageCGPA !== null ? `${averageCGPA} / 10` : "N/A")}
           </p>
         </div>
       </div>
@@ -147,13 +214,57 @@ export const AdminAnalytics: React.FC = () => {
           color="#6366F1"
           id="cgpa-distribution-chart"
         />
+
         <PieChartCard
-          title="Attendance Range Distribution"
-          data={attendanceData}
-          colors={["#10B981", "#F59E0B", "#EF4444", "#4F46E5"]}
-          id="attendance-distribution-chart"
+          title="Active Backlog Analysis"
+          data={backlogData.length > 0 ? backlogData : [{ name: "No Backlog Data", value: 1 }]}
+          colors={["#10B981", "#F59E0B", "#EF4444", "#8B5CF6"]}
+          id="backlog-distribution-chart"
         />
       </div>
+
+      {/* Department Breakdown Table Card */}
+      {deptData.length > 0 && (
+        <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-primary-500" /> Department Performance Breakdown
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase">
+                  <th className="py-2.5 px-3">Department</th>
+                  <th className="py-2.5 px-3 text-center">Total Students</th>
+                  <th className="py-2.5 px-3 text-center">Appeared</th>
+                  <th className="py-2.5 px-3 text-center">Passed</th>
+                  <th className="py-2.5 px-3 text-center">Failed</th>
+                  <th className="py-2.5 px-3 text-center">Pass %</th>
+                  <th className="py-2.5 px-3 text-center">Avg SGPA</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {deptData.map((d) => (
+                  <tr key={d.departmentId} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
+                    <td className="py-3 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                      {d.departmentCode} — {d.departmentName}
+                    </td>
+                    <td className="py-3 px-3 text-center">{d.totalStudents}</td>
+                    <td className="py-3 px-3 text-center">{d.studentsWithResults}</td>
+                    <td className="py-3 px-3 text-center text-emerald-600 font-bold">{d.passedStudents}</td>
+                    <td className="py-3 px-3 text-center text-rose-500 font-bold">{d.failedStudents}</td>
+                    <td className="py-3 px-3 text-center font-bold">
+                      {d.passPercentage !== null ? `${d.passPercentage}%` : "—"}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {d.averageSGPA !== null ? d.averageSGPA : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

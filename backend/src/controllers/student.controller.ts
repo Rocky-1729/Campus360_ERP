@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { studentRepository } from '../repositories/student.repository';
+import { pgStudentRepository } from '../repositories/pgStudent.repository';
 import { auditRepository } from '../repositories/audit.repository';
 import * as studentService from '../services/student.service';
 import * as marksService from '../services/marks.service';
@@ -14,12 +15,32 @@ import { ApiError } from '../utils/ApiError';
 /**
  * Helper to fetch Student record from req.user
  */
-const getStudentByUserId = async (userId: string) => {
-  const student = await studentRepository.findByUserId(Number(userId));
-  if (!student) {
-    throw ApiError.forbidden('Student profile not found.');
+const getStudentByUserId = async (userId: string | number, username?: string) => {
+  try {
+    const student = await studentRepository.findByUserId(Number(userId));
+    if (student) return student;
+  } catch {
+    // ignore
   }
-  return student;
+
+  if (username) {
+    const pgStudent = await pgStudentRepository.findStudentById(username);
+    if (pgStudent) {
+      return {
+        id: Number(pgStudent.id),
+        userId: Number(userId),
+        hallTicketNumber: pgStudent.hallTicketNumber,
+        name: pgStudent.name,
+        department: pgStudent.departmentName || pgStudent.departmentCode || 'CSE',
+        year: 1,
+        semester: '1-1',
+        section: pgStudent.sectionName || 'A',
+        isActive: 1,
+      };
+    }
+  }
+
+  throw ApiError.forbidden('Student profile not found.');
 };
 
 /**
@@ -32,7 +53,7 @@ export const getDashboard = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
 
     // Fetch marks summary for CGPA / SGPA
     const marksSummary = await marksService.getMarksSummary(student.hallTicketNumber);
@@ -95,7 +116,7 @@ export const getMarks = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
     const { semester } = req.query;
 
     const marks = await marksService.getMarksByHallTicket(
@@ -125,7 +146,7 @@ export const getAttendance = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
     const { semester, subjectId } = req.query;
 
     const records = await attendanceService.getAttendanceByHallTicket(
@@ -156,7 +177,7 @@ export const uploadCertificate = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
 
     const { type, title, issuingOrganization, issueDate } = req.body;
     if (!type || !title) {
@@ -202,7 +223,7 @@ export const getCertificates = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
 
     const certs = await certificateService.getCertificatesByHallTicket(student.hallTicketNumber);
     res.status(200).json(ApiResponse.success(certs, 'Certificates fetched successfully.'));
@@ -221,7 +242,7 @@ export const uploadAchievement = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
 
     const { category, title, description, date } = req.body;
     if (!category || !title) {
@@ -267,7 +288,7 @@ export const getAchievements = async (
 ): Promise<void> => {
   try {
     if (!req.user) throw ApiError.unauthorized();
-    const student = await getStudentByUserId(req.user.id);
+    const student = await getStudentByUserId(req.user.id, req.user.username);
 
     const achievements = await achievementService.getAchievementsByHallTicket(student.hallTicketNumber);
     res.status(200).json(ApiResponse.success(achievements, 'Achievements fetched successfully.'));

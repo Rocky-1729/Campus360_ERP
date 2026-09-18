@@ -55,23 +55,28 @@ export const AttendanceView: React.FC = () => {
     { header: "Late", accessor: "late" },
     {
       header: "Attendance %",
-      accessor: (row) => (
-        <div className="flex items-center gap-2">
-          <div className="w-16 bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden shrink-0">
-            <div
-              className={`h-2 rounded-full ${
-                row.percentage >= 75 ? "bg-emerald-500" : "bg-rose-500"
-              }`}
-              style={{ width: `${Math.min(row.percentage, 100)}%` }}
-            />
+      accessor: (row) => {
+        if (row.total === 0 || row.percentage === null || row.percentage === undefined) {
+          return <span className="text-xs text-slate-400 italic">No classes held</span>;
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-16 bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden shrink-0">
+              <div
+                className={`h-2 rounded-full ${
+                  row.percentage >= 75 ? "bg-emerald-500" : "bg-rose-500"
+                }`}
+                style={{ width: `${Math.min(row.percentage, 100)}%` }}
+              />
+            </div>
+            <span
+              className={`font-semibold ${row.percentage >= 75 ? "text-emerald-500" : "text-rose-500"}`}
+            >
+              {row.percentage}%
+            </span>
           </div>
-          <span
-            className={`font-semibold ${row.percentage >= 75 ? "text-emerald-500" : "text-rose-500"}`}
-          >
-            {row.percentage}%
-          </span>
-        </div>
-      ),
+        );
+      },
     },
   ];
 
@@ -116,10 +121,14 @@ export const AttendanceView: React.FC = () => {
         <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-850 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-800">
           <span
             className={`text-lg font-bold ${
-              overall.percentage >= 75 ? "text-emerald-500" : "text-rose-500"
+              overall.total === 0 || overall.percentage === null
+                ? "text-slate-400"
+                : overall.percentage >= 75
+                ? "text-emerald-500"
+                : "text-rose-500"
             }`}
           >
-            {overall.percentage}%
+            {overall.total === 0 || overall.percentage === null ? "N/A" : `${overall.percentage}%`}
           </span>
         </div>
         <div>
@@ -127,8 +136,9 @@ export const AttendanceView: React.FC = () => {
             Overall Attendance
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Attended {overall.present} classes out of {overall.total} total
-            recorded sessions.
+            {overall.total === 0
+              ? "No classes have been recorded yet."
+              : `Attended ${overall.present} classes out of ${overall.total} total recorded sessions.`}
           </p>
         </div>
       </div>

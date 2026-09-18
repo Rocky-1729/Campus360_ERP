@@ -65,7 +65,7 @@ export const login = async (
       throw ApiError.unauthorized('Invalid username/ID or password.');
     }
 
-    if (user.isActive === 0) {
+    if (user.isActive === 0 || (user as any).isActive === false) {
       throw ApiError.unauthorized('Your account has been deactivated. Contact the administrator.');
     }
 
